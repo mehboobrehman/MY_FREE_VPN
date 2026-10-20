@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MyFreeVpnDataModels",
+  "description": "JSON Schema definitions for MY_FREE_VPN client-server communication",
+  "definitions": {
+    "DeviceRegistration": {
+      "type": "object",
+      "required": ["device_uuid", "public_key", "signature", "platform"],
+      "properties": {
+        "device_uuid": { "type": "string", "format": "uuid" },
+        "public_key": { "type": "string" },
+        "signature": { "type": "string" },
+        "platform": { "type": "string", "enum": ["android", "windows"] },
+        "app_version": { "type": "string" }
+      }
+    },
+    "VpnNode": {
+      "type": "object",
+      "required": ["node_id", "country_code", "city", "endpoint_ip", "endpoint_port", "public_key"],
+      "properties": {
+        "node_id": { "type": "string", "format": "uuid" },
+        "country_code": { "type": "string" },
+        "city": { "type": "string" },
+        "endpoint_ip": { "type": "string" },
+        "endpoint_port": { "type": "integer" },
+        "public_key": { "type": "string" },
+        "current_load_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "ping_ms": { "type": "integer" }
+      }
+    },
+    "ConnectionConfig": {
+      "type": "object",
+      "required": ["session_token", "client_ip", "server_endpoint", "server_public_key", "allowed_ips"],
+      "properties": {
+        "session_token": { "type": "string" },
+        "client_ip": { "type": "string" },
+        "server_endpoint": { "type": "string" },
+        "server_public_key": { "type": "string" },
+        "allowed_ips": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "dns_servers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "persistent_keepalive": { "type": "integer" }
+      }
+    }
+  }
+}

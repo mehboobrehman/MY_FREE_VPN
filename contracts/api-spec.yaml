@@ -1,0 +1,270 @@
+openapi: 3.0.3
+info:
+  title: MY_FREE_VPN Backend API
+  version: 1.0.0
+  description: Zero-signup, privacy-first VPN management API for Flutter clients and WireGuard nodes.
+servers:
+  - url: https://api.myfreevpn.net/api/v1
+    description: Production Server
+  - url: http://localhost:8080/api/v1
+    description: Local Development Server
+
+paths:
+  /auth/register:
+    post:
+      summary: Register device and WireGuard public key
+      description: Zero-setup registration using device UUID and cryptographic key binding. No PII required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  device_id:
+                    type: string
+                    format: uuid
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /nodes:
+    get:
+      summary: List available VPN exit nodes
+      description: Returns a list of globally distributed WireGuard exit nodes with current load and latency metrics.
+      parameters:
+        - name: country
+          in: query
+          description: Optional ISO country code filter
+          required: false
+          schema:
+            type: string
+            example: SG
+      responses:
+        '200':
+          description: List of nodes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VpnNode'
+
+  /session/connect:
+    post:
+      summary: Request WireGuard connection configuration
+      description: Allocates an internal VPN IP and returns handshake parameters for the selected node.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device_uuid
+                - node_id
+              properties:
+                device_uuid:
+                  type: string
+                  format: uuid
+                node_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Connection configuration generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionConfig'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '429':
+          description: Rate limit or bandwidth quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /session/disconnect:
+    post:
+      summary: Notify graceful session termination
+      description: Allows the backend to release dynamic IP allocation and update metrics.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device_uuid
+                - session_token
+              properties:
+                device_uuid:
+                  type: string
+                  format: uuid
+                session_token:
+                  type: string
+      responses:
+        '200':
+          description: Disconnect acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: disconnected
+
+  /status:
+    get:
+      summary: System status health check
+      responses:
+        '200':
+          description: System operational
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: integer
+                    format: int64
+
+components:
+  schemas:
+    DeviceRegistration:
+      type: object
+      required:
+        - device_uuid
+        - public_key
+        - signature
+        - platform
+      properties:
+        device_uuid:
+          type: string
+          format: uuid
+          description: Locally generated device installation UUID.
+        public_key:
+          type: string
+          description: Base64-encoded WireGuard public key.
+        signature:
+          type: string
+          description: Cryptographic signature of device_uuid signed by WireGuard private key.
+        platform:
+          type: string
+          enum: [android, windows]
+          description: Operating system platform.
+        app_version:
+          type: string
+          example: 1.0.0
+
+    VpnNode:
+      type: object
+      required:
+        - node_id
+        - country_code
+        - city
+        - endpoint_ip
+        - endpoint_port
+        - public_key
+      properties:
+        node_id:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          example: SG
+        city:
+          type: string
+          example: Singapore
+        endpoint_ip:
+          type: string
+          format: ipv4
+          example: 195.201.0.1
+        endpoint_port:
+          type: integer
+          example: 51820
+        public_key:
+          type: string
+          description: Server WireGuard public key.
+        current_load_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 35
+        ping_ms:
+          type: integer
+          example: 45
+
+    ConnectionConfig:
+      type: object
+      required:
+        - session_token
+        - client_ip
+        - server_endpoint
+        - server_public_key
+        - allowed_ips
+      properties:
+        session_token:
+          type: string
+          format: uuid
+        client_ip:
+          type: string
+          example: 10.8.0.2/32
+        server_endpoint:
+          type: string
+          example: 195.201.0.1:51820
+        server_public_key:
+          type: string
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          example: ["0.0.0.0/0", "::/0"]
+        dns_servers:
+          type: array
+          items:
+            type: string
+          example: ["1.1.1.1", "8.8.8.8"]
+        persistent_keepalive:
+          type: integer
+          example: 25
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: INVALID_SIGNATURE
+        message:
+          type: string
+          example: The cryptographic signature verification failed.
+  responses:
+    ErrorResponse:
+      description: Error payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
