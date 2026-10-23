@@ -16,7 +16,9 @@ const defaultNodes = [
     proxy_port: 1080,
     public_key: 'G+9v8k7L6m5n4o3p2q1r0s9t8u7v6w5x4y3z2A1B0C=',
     current_load_percent: 35,
-    ping_ms: 45
+    ping_ms: 45,
+    is_streaming: false,
+    smart_dns_enabled: false
   },
   {
     node_id: 'b2c3d4e5-f6a7-8901-bcde-f01234567890',
@@ -26,7 +28,9 @@ const defaultNodes = [
     endpoint_port: 51820,
     public_key: 'H+0w9l8M7n6o5p4q3r2s1t0u9v8w7x6y5z4A3B2C1D=',
     current_load_percent: 50,
-    ping_ms: 120
+    ping_ms: 120,
+    is_streaming: false,
+    smart_dns_enabled: false
   },
   {
     node_id: 'c3d4e5f6-a7b8-9012-cdef-012345678901',
@@ -36,7 +40,33 @@ const defaultNodes = [
     endpoint_port: 51820,
     public_key: 'I+1x0m9N8o7p6q5r4s3t2u1v0w9x8y7z6A5B4C3D2E=',
     current_load_percent: 20,
-    ping_ms: 85
+    ping_ms: 85,
+    is_streaming: false,
+    smart_dns_enabled: false
+  },
+  {
+    node_id: 'd4e5f6a7-b8c9-0123-defa-123456789012',
+    country_code: 'US',
+    city: 'US Streaming (Netflix/Hulu Optimized)',
+    endpoint_ip: '138.201.0.4',
+    endpoint_port: 51820,
+    public_key: 'J+2y1n0O9p8q7r6s5t4u3v2w1x0y9z8A7B6C5D4E3F=',
+    current_load_percent: 40,
+    ping_ms: 70,
+    is_streaming: true,
+    smart_dns_enabled: true
+  },
+  {
+    node_id: 'e5f6a7b8-c9d0-1234-efab-234567890123',
+    country_code: 'GB',
+    city: 'UK Streaming (BBC iPlayer Optimized)',
+    endpoint_ip: '195.201.0.5',
+    endpoint_port: 51820,
+    public_key: 'K+3z2o1P0q9r8s7t6u5v4w3x2y1z0A9B8C7D6E5F4G=',
+    current_load_percent: 45,
+    ping_ms: 95,
+    is_streaming: true,
+    smart_dns_enabled: true
   }
 ];
 

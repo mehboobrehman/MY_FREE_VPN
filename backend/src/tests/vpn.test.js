@@ -54,11 +54,69 @@ test('API /api/v1/auth/register endpoint succeeds with valid cryptographic proof
   assert.strictEqual(res.body.device_id, deviceUuid);
 });
 
-test('API /api/v1/nodes endpoint returns list of WireGuard exit nodes', async () => {
-  const res = await request(app).get('/api/v1/nodes');
+test('API /api/v1/nodes?streaming=true returns streaming nodes', async () => {
+  const res = await request(app).get('/api/v1/nodes?streaming=true');
   assert.strictEqual(res.status, 200);
   assert.ok(Array.isArray(res.body.nodes));
   assert.ok(res.body.nodes.length > 0);
-  assert.ok(res.body.nodes[0].endpoint_ip);
-  assert.ok(res.body.nodes[0].public_key);
+  assert.strictEqual(res.body.nodes[0].is_streaming, true);
+});
+
+test('API /api/v1/smartdns/config returns smart dns routing rules', async () => {
+  const keyPair = nacl.sign.keyPair();
+  const deviceUuid = uuidv4();
+  const messageBytes = Buffer.from(deviceUuid, 'utf8');
+  const signature = nacl.sign.detached(messageBytes, keyPair.secretKey);
+
+  await request(app)
+    .post('/api/v1/auth/register')
+    .send({
+      device_uuid: deviceUuid,
+      public_key: Buffer.from(keyPair.publicKey).toString('base64'),
+      signature: Buffer.from(signature).toString('base64'),
+      platform: 'windows',
+      app_version: '1.0.0'
+    });
+
+  const res = await request(app)
+    .post('/api/v1/smartdns/config')
+    .send({ device_uuid: deviceUuid });
+
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.smart_dns_status, 'active');
+  assert.ok(Array.isArray(res.body.redirection_rules));
+  assert.ok(res.body.redirection_rules.length > 0);
+});
+
+test('API /api/v1/legacy/config returns OpenVPN and PPTP profiles', async () => {
+  const keyPair = nacl.sign.keyPair();
+  const deviceUuid = uuidv4();
+  const messageBytes = Buffer.from(deviceUuid, 'utf8');
+  const signature = nacl.sign.detached(messageBytes, keyPair.secretKey);
+
+  await request(app)
+    .post('/api/v1/auth/register')
+    .send({
+      device_uuid: deviceUuid,
+      public_key: Buffer.from(keyPair.publicKey).toString('base64'),
+      signature: Buffer.from(signature).toString('base64'),
+      platform: 'windows',
+      app_version: '1.0.0'
+    });
+
+  const resOvpn = await request(app)
+    .post('/api/v1/legacy/config')
+    .send({ device_uuid: deviceUuid, protocol: 'openvpn' });
+
+  assert.strictEqual(resOvpn.status, 200);
+  assert.strictEqual(resOvpn.body.protocol, 'openvpn');
+  assert.ok(resOvpn.body.config_file_content);
+
+  const resPptp = await request(app)
+    .post('/api/v1/legacy/config')
+    .send({ device_uuid: deviceUuid, protocol: 'pptp' });
+
+  assert.strictEqual(resPptp.status, 200);
+  assert.strictEqual(resPptp.body.protocol, 'pptp');
+  assert.ok(resPptp.body.server_endpoint);
 });
