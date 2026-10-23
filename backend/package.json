@@ -1,0 +1,24 @@
+{
+  "name": "my-free-vpn-backend",
+  "version": "1.0.0",
+  "description": "Zero-setup, privacy-first VPN management API for Flutter clients and WireGuard nodes",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test src/tests/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "uuid": "^9.0.1",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/uuid": "^10.0.0",
+    "@types/body-parser": "^1.19.6",
+    "supertest": "^6.3.4",
+    "@types/supertest": "^7.2.1"
+  }
+}

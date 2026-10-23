@@ -1,0 +1,18 @@
+#!ipxe
+
+# iPXE script to boot RAM-only Alpine Linux
+set alpine-mirror http://dl-cdn.alpinelinux.org/alpine/v3.18/releases/x86_64/netboot
+set repo http://dl-cdn.alpinelinux.org/alpine/v3.18/main
+
+kernel ${alpine-mirror}/vmlinuz-virt
+initrd ${alpine-mirror}/initramfs-virt
+
+# Alpine boot parameters:
+# - alpine_repo: mirror to use
+# - modloop: squashfs with kernel modules
+# - apkovl: URL to an overlay file (configs) or 'none'
+# - ssh_key: to allow remote management if needed (optional)
+# - pkgs: packages to install on boot
+imgargs vmlinuz-virt alpine_repo=${repo} modloop=${alpine-mirror}/modloop-virt modules=loop,squashfs,sd-mod,usb-storage quiet nomodeset
+
+boot
