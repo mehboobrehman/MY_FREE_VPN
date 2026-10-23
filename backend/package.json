@@ -8,17 +8,18 @@
     "test": "node --test src/tests/*.test.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "archiver": "^8.0.0",
     "body-parser": "^1.20.2",
-    "uuid": "^9.0.1",
-    "tweetnacl": "^1.0.3"
+    "express": "^4.19.2",
+    "tweetnacl": "^1.0.3",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/body-parser": "^1.19.6",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
+    "@types/supertest": "^7.2.1",
     "@types/uuid": "^10.0.0",
-    "@types/body-parser": "^1.19.6",
-    "supertest": "^6.3.4",
-    "@types/supertest": "^7.2.1"
+    "supertest": "^6.3.4"
   }
 }
