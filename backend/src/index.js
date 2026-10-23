@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
 const nodeRoutes = require('./routes/nodes');
 const sessionRoutes = require('./routes/session');
+const socialRoutes = require('./routes/social');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -15,6 +16,7 @@ const API_PREFIX = '/api/v1';
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/nodes`, nodeRoutes);
 app.use(`${API_PREFIX}/session`, sessionRoutes);
+app.use(`${API_PREFIX}/social`, socialRoutes);
 
 // Health check
 app.get(`${API_PREFIX}/status`, (_req, res) => {
