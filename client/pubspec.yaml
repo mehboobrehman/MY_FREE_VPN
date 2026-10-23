@@ -1,0 +1,31 @@
+name: my_free_vpn
+description: A free VPN for android and windows for lifetime with zero setup.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  http: ^1.1.0
+  shared_preferences: ^2.2.1
+  uuid: ^4.1.0
+  encrypt: ^5.0.1
+  pointycastle: ^3.7.3
+  flutter_vpn: ^0.0.1  # Placeholder for Android VpnService
+  wintun: ^0.0.1      # Placeholder for Windows WinTUN integration
+  flutter_udid: ^2.0.0 # For getting device UUID
+  logger: ^2.0.2
+  flutter_windows_vpn: ^0.0.1 # Windows No-Admin proxy integration
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
