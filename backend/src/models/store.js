@@ -13,6 +13,7 @@ const defaultNodes = [
     city: 'Singapore',
     endpoint_ip: '195.201.0.1',
     endpoint_port: 51820,
+    proxy_port: 1080,
     public_key: 'G+9v8k7L6m5n4o3p2q1r0s9t8u7v6w5x4y3z2A1B0C=',
     current_load_percent: 35,
     ping_ms: 45

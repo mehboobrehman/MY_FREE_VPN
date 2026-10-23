@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY_FREE_VPN</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M12 8v4"/>
+            <path d="M12 16h.01"/>
+          </svg>
+        </div>
+        <span class="brand-name">MY_FREE_VPN</span>
+      </div>
+      <div class="header-actions">
+        <span class="badge-free">100% FREE</span>
+        <button id="refresh-btn" class="icon-button" title="Refresh Nodes" aria-label="Refresh available VPN nodes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- One-Tap Big Connect Button -->
+      <div class="connect-section">
+        <button id="connect-btn" class="connect-button disconnected" aria-label="Toggle VPN Connection">
+          <div class="button-ring"></div>
+          <div class="button-core">
+            <svg class="power-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+              <line x1="12" y1="2" x2="12" y2="12"/>
+            </svg>
+          </div>
+        </button>
+        <div id="status-label" class="status-label">Tap to Connect</div>
+        <div id="connection-timer" class="connection-timer hidden">00:00:00</div>
+      </div>
+
+      <!-- Selected Node Card / Selector -->
+      <div class="node-selector-card">
+        <div class="node-header-label">SELECTED SERVER</div>
+        <div id="selected-node-trigger" class="node-trigger" tabIndex="0" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Select VPN Server Location">
+          <div class="node-flag" id="node-flag">🌐</div>
+          <div class="node-info">
+            <div id="node-location" class="node-location">Loading servers...</div>
+            <div id="node-meta" class="node-meta">Automatic Selection</div>
+          </div>
+          <div class="dropdown-chevron">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node Dropdown / Modal List -->
+      <div id="nodes-modal" class="nodes-modal hidden" role="listbox" aria-label="VPN Server List">
+        <div class="nodes-modal-header">
+          <span>Select Location</span>
+          <button id="close-nodes-btn" class="close-btn" aria-label="Close server selection list">&times;</button>
+        </div>
+        <div id="nodes-list" class="nodes-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Identity & Security Footer Card -->
+      <div class="identity-card">
+        <div class="identity-row">
+          <span class="identity-label">Identity Model:</span>
+          <span class="identity-val">Zero-Signup Key Binding</span>
+        </div>
+        <div class="identity-row">
+          <span class="identity-label">Device UUID:</span>
+          <span id="device-uuid-val" class="identity-val uuid-text">Initializing...</span>
+        </div>
+      </div>
+
+      <!-- Error Toast -->
+      <div id="error-toast" class="error-toast hidden" role="alert">
+        <span id="error-message">Error message</span>
+        <button id="dismiss-error-btn" class="dismiss-btn" aria-label="Dismiss error message">&times;</button>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="no-logs-tag">
+        <span class="dot-live"></span> RAM-Only Ephemeral Exit Nodes (Zero Logs)
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

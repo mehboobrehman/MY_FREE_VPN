@@ -30,10 +30,10 @@ async function registerDevice(req, res) {
     });
   }
 
-  if (!['android', 'windows'].includes(platform)) {
+  if (!['android', 'windows', 'browser', 'extension'].includes(platform)) {
     return res.status(400).json({
       error: 'INVALID_PLATFORM',
-      message: 'Platform must be either android or windows.'
+      message: 'Platform must be android, windows, browser, or extension.'
     });
   }
 
