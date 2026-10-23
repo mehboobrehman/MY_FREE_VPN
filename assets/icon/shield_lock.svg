@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="100%" stop-color="#4FACFE" />
+    </linearGradient>
+    <linearGradient id="lockGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+  </defs>
+  <path d="M256 32C140 32 64 64 64 64v160c0 144 112 224 192 256 80-32 192-112 192-256V64s-76-32-192-32z" fill="url(#shieldGrad)" stroke="#00C6FF" stroke-width="12"/>
+  <path d="M256 70c-105 0-160 24-160 24v140c0 120 90 190 160 220 70-30 160-100 160-220V94s-55-24-160-24z" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="8"/>
+  <!-- Lock Body -->
+  <rect x="196" y="230" width="120" height="100" rx="16" fill="url(#lockGrad)"/>
+  <!-- Lock Shackle -->
+  <path d="M220 230v-40a36 36 0 0 1 72 0v40" fill="none" stroke="url(#lockGrad)" stroke-width="20" stroke-linecap="round"/>
+  <!-- Keyhole -->
+  <circle cx="256" cy="270" r="14" fill="#0F172A"/>
+  <path d="M250 275h12v30h-12z" fill="#0F172A"/>
+</svg>
