@@ -1,6 +1,6 @@
 {
   "name": "my-free-vpn-backend",
-  "version": "1.0.0",
+  "version": "1.1.2",
   "description": "Zero-setup, privacy-first VPN management API for Flutter clients and WireGuard nodes",
   "main": "src/index.js",
   "scripts": {
