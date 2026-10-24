@@ -28,10 +28,11 @@ cd ..
 echo.
 echo ========================================================
 echo  Client Artifacts Available in this Unified Package:
-echo    - Windows Portable: clients\MY_FREE_VPN_Windows_v1.1.2.zip
-echo    - Windows Installer: clients\MY_FREE_VPN_Setup_v1.1.2.exe
-echo    - Android APK: clients\MY_FREE_VPN_v1.1.2.apk
-echo    - Browser Extension: clients\MY_FREE_VPN_Browser_Extension_v1.1.1.zip
+echo    - Windows Portable: clients\MY_FREE_VPN_Windows_v1.1.3.zip
+echo    - Windows Installer: clients\MY_FREE_VPN_Setup_v1.1.3.exe
+echo    - Android APK: clients\MY_FREE_VPN_v1.1.3.apk
+echo    - Browser Extension: clients\MY_FREE_VPN_Browser_Extension_v1.1.3.zip
 echo ========================================================
 echo Backend is running in the background. Check backend.log for details.
+echo Note: Android APK and Setup Installer are coming soon.
 pause

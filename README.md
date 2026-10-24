@@ -3,7 +3,7 @@
 # 🛡️ MY_FREE_VPN
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Release v1.1.2](https://img.shields.io/badge/Release-v1.1.2-brightgreen.svg)](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.2)
+[![Release v1.1.3](https://img.shields.io/badge/Release-v1.1.3-brightgreen.svg)](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Browser-orange.svg)](https://github.com/mehboobrehman/MY_FREE_VPN/releases)
 [![Protocol: WireGuard](https://img.shields.io/badge/Protocol-WireGuard-purple.svg)](https://www.wireguard.com/)
 
@@ -60,25 +60,25 @@ MY_FREE_VPN utilizes industry-standard cryptographic protocols to ensure uncompr
 
 ## 📦 Installation & User Guide
 
-Download the latest production release (**v1.1.2**) directly from GitHub Releases:
-🔗 [GitHub Releases v1.1.2](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.2)
+Download the latest production release (**v1.1.3**) directly from GitHub Releases:
+🔗 [GitHub Releases v1.1.3](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3)
 
 ### 🪟 Windows (Portable & Installer)
-1.  **Installer (`MY_FREE_VPN_Setup_v1.1.2.exe`)**:
+1.  **Installer (`MY_FREE_VPN_Setup_v1.1.3.exe`)**:
     *   Download the setup executable.
     *   Run the installer wizard (installs with the official VPN Shield icon and sets up WinTUN driver bindings).
     *   Launch **MY_FREE_VPN** from your Start Menu or desktop shortcut.
-2.  **Portable (`MY_FREE_VPN_Windows_v1.1.2.zip`)**:
+2.  **Portable (`MY_FREE_VPN_Windows_v1.1.3.zip`)**:
     *   Download and extract the portable `.zip` package to any folder.
     *   Run `my-free-vpn.exe` directly without requiring administrative installation privileges.
 
-### 🤖 Android (`v1.1.2`)
-1.  Download `MY_FREE_VPN_v1.1.2.apk` to your Android device.
+### 🤖 Android (`v1.1.3`)
+1.  Download `MY_FREE_VPN_v1.1.3.apk` to your Android device.
 2.  Tap the APK file to install (allow "Install from unknown sources" if prompted by Android).
 3.  Open the app, grant VpnService permissions when prompted, and tap **"Connect"** to activate secure tunneling.
 
 ### 🌐 Browser Extension (Manifest V3)
-1.  Download and extract `MY_FREE_VPN_Browser_Extension_v1.1.2.zip`.
+1.  Download and extract `MY_FREE_VPN_Browser_Extension_v1.1.3.zip`.
 2.  Open your browser extension page (`chrome://extensions` or `edge://extensions`).
 3.  Enable **Developer mode** in the top right corner.
 4.  Click **Load unpacked** and select the extracted extension directory.
@@ -110,13 +110,13 @@ npm run dev
 
 ---
 
-## 🏷️ Release Artifacts (`v1.1.2`)
+## 🏷️ Release Artifacts (`v1.1.3`)
 
-All official production artifacts for release **v1.1.2** are available on GitHub:
-*   [MY_FREE_VPN_Setup_v1.1.2.exe](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.2) — Windows Installer
-*   [MY_FREE_VPN_Windows_v1.1.2.zip](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.2) — Windows Portable Archive
-*   [MY_FREE_VPN_v1.1.2.apk](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.2) — Android Client App
-*   [MY_FREE_VPN_Browser_Extension_v1.1.2.zip](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.2) — Browser Extension (Manifest V3)
+All official production artifacts for release **v1.1.3** are available on GitHub:
+*   [MY_FREE_VPN_Setup_v1.1.3.exe](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3) — Windows Installer
+*   [MY_FREE_VPN_Windows_v1.1.3.zip](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3) — Windows Portable Archive
+*   [MY_FREE_VPN_v1.1.3.apk](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3) — Android Client App
+*   [MY_FREE_VPN_Browser_Extension_v1.1.3.zip](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3) — Browser Extension (Manifest V3)
 
 ---
 
