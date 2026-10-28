@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:ffi/ffi.dart';
 
 class WindowsVpnService {
   static const String _libName = 'my_free_vpn_win'; // Name of the Go executable
@@ -40,12 +41,12 @@ class WindowsVpnService {
       // Example: Define the signature of the Go function
       // This assumes the Go function is exported as 'ConnectVpn'
       // and takes a C-style string pointer for each argument, returning an integer (0 for success, non-zero for failure)
-      var connectFunc = _dylib!.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>), Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>) >('ConnectVpn');
+      var connectFunc = _dylib!.lookupFunction<Int32 Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>), int Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>) >('ConnectVpn');
 
       // Convert Dart strings to C-style string pointers
-      Pointer<Utf8> serverUrlPtr = Utf8.toUtf8(serverUrl);
-      Pointer<Utf8> publicKeyPtr = Utf8.toUtf8(publicKey);
-      Pointer<Utf8> deviceIdPtr = Utf8.toUtf8(deviceId);
+      Pointer<Utf8> serverUrlPtr = serverUrl.toNativeUtf8();
+      Pointer<Utf8> publicKeyPtr = publicKey.toNativeUtf8();
+      Pointer<Utf8> deviceIdPtr = deviceId.toNativeUtf8();
 
       // Call the Go function
       int result = connectFunc(serverUrlPtr, publicKeyPtr, deviceIdPtr);
@@ -71,7 +72,7 @@ class WindowsVpnService {
 
     try {
       // Example: Define the signature for a disconnect function
-      var disconnectFunc = _dylib!.lookupFunction<Int32 Function(), Int32 Function()>('DisconnectVpn');
+      var disconnectFunc = _dylib!.lookupFunction<Int32 Function(), int Function()>('DisconnectVpn');
       int result = disconnectFunc();
       return result == 0;
     } catch (e) {

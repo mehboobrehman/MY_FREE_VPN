@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:my_free_vpn/services/vpn_service.dart';
-import 'package:my_free_vpn/community_tab.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -53,13 +52,6 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> with TrayListener, WindowListener {
-  int _selectedIndex = 0;
-
-  static const List<Widget> _widgetOptions = <Widget>[
-    VpnHomeScreen(),
-    CommunityTab(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -120,32 +112,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with TrayLi
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.shield_outlined),
-            selectedIcon: Icon(Icons.shield),
-            label: 'VPN Shield',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum),
-            label: 'Community Feed',
-          ),
-        ],
-      ),
+    return const Scaffold(
+      body: VpnHomeScreen(),
     );
   }
 }
@@ -255,185 +225,203 @@ class _VpnHomeScreenState extends State<VpnHomeScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Row(
-          children: [
-            // Left Column: Main Connection Shield & Toggle
-            Expanded(
-              flex: 3,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Animated Shield Button
-                  GestureDetector(
-                    onTap: _isToggling ? null : _toggleVpn,
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: _isConnected
-                              ? [Colors.green.shade400, Colors.green.shade800]
-                              : [Colors.blue.shade400, Colors.blue.shade800],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (_isConnected ? Colors.green : Colors.blue).withOpacity(0.4),
-                            blurRadius: 25,
-                            spreadRadius: 8,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 700;
+          
+          final shieldWidget = Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animated Shield Button
+              GestureDetector(
+                onTap: _isToggling ? null : _toggleVpn,
+                child: Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _isConnected
+                          ? [Colors.green.shade400, Colors.green.shade800]
+                          : [Colors.blue.shade400, Colors.blue.shade800],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_isConnected ? Colors.green : Colors.blue).withOpacity(0.4),
+                        blurRadius: 25,
+                        spreadRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: _isToggling
+                        ? const SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 4,
+                            ),
+                          )
+                        : Icon(
+                            _isConnected ? Icons.lock : Icons.lock_open,
+                            size: 65,
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: _isToggling
-                            ? const SizedBox(
-                                width: 50,
-                                height: 50,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 4,
-                                ),
-                              )
-                            : Icon(
-                                _isConnected ? Icons.lock : Icons.lock_open,
-                                size: 70,
-                                color: Colors.white,
-                              ),
-                      ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _isConnected ? 'YOUR CONNECTION IS SECURE' : 'TAP SHIELD TO CONNECT',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: _isConnected ? Colors.green.shade700 : Colors.blue.shade800,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _statusMessage,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+              if (_connectedNode != null) ...[
+                const SizedBox(height: 10),
+                Chip(
+                  label: Text('Active Node: $_connectedNode',
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                  backgroundColor: Colors.blue.shade50,
+                ),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: 220,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: _isToggling ? null : _toggleVpn,
+                  icon: Icon(_isConnected ? Icons.power_settings_new : Icons.bolt),
+                  label: Text(
+                    _isConnected ? 'DISCONNECT' : 'QUICK CONNECT',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isConnected ? Colors.red.shade600 : Colors.blue.shade600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    _isConnected ? 'YOUR CONNECTION IS SECURE' : 'TAP SHIELD TO CONNECT',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: _isConnected ? Colors.green.shade700 : Colors.blue.shade800,
-                    ),
+                ),
+              ),
+            ],
+          );
+
+          final detailsWidget = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Exit Node Location',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedRegion,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: _regions.map((region) {
+                  return DropdownMenuItem(
+                    value: region,
+                    child: Text(region, style: const TextStyle(fontSize: 14)),
+                  );
+                }).toList(),
+                onChanged: _isConnected
+                    ? null
+                    : (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedRegion = val;
+                          });
+                        }
+                      },
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Session Analytics',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Card(
+                elevation: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(14.0),
+                  child: Column(
+                    children: [
+                      _buildAnalyticRow(Icons.download, 'Downloaded', _isConnected ? '14.2 MB' : '0 KB'),
+                      const Divider(height: 14),
+                      _buildAnalyticRow(Icons.upload, 'Uploaded', _isConnected ? '3.8 MB' : '0 KB'),
+                      const Divider(height: 14),
+                      _buildAnalyticRow(Icons.speed, 'Ping', _isConnected ? '18 ms' : '—'),
+                      const Divider(height: 14),
+                      _buildAnalyticRow(Icons.security, 'Protocol', 'WireGuard (ChaCha20)'),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _statusMessage,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (_connectedNode != null) ...[
-                    const SizedBox(height: 12),
-                    Chip(
-                      label: Text('Active Node: $_connectedNode',
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                      backgroundColor: Colors.blue.shade50,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.info_outline, color: Colors.blueAccent, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Lifetime Free • Zero Logs • Secure',
+                        style: TextStyle(fontSize: 12, color: Colors.blue),
+                      ),
                     ),
                   ],
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: 240,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _isToggling ? null : _toggleVpn,
-                      icon: Icon(_isConnected ? Icons.power_settings_new : Icons.bolt),
-                      label: Text(
-                        _isConnected ? 'DISCONNECT' : 'QUICK CONNECT',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isConnected ? Colors.red.shade600 : Colors.blue.shade600,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const VerticalDivider(width: 32),
-            // Right Column: Server Selector & Analytics
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          );
+
+          if (isWide) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Row(
                 children: [
-                  const Text(
-                    'Exit Node Location',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRegion,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: _regions.map((region) {
-                      return DropdownMenuItem(
-                        value: region,
-                        child: Text(region, style: const TextStyle(fontSize: 14)),
-                      );
-                    }).toList(),
-                    onChanged: _isConnected
-                        ? null
-                        : (val) {
-                            if (val != null) {
-                              setState(() {
-                                _selectedRegion = val;
-                              });
-                            }
-                          },
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Session Analytics',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildAnalyticRow(Icons.download, 'Downloaded', _isConnected ? '14.2 MB' : '0 KB'),
-                          const Divider(height: 16),
-                          _buildAnalyticRow(Icons.upload, 'Uploaded', _isConnected ? '3.8 MB' : '0 KB'),
-                          const Divider(height: 16),
-                          _buildAnalyticRow(Icons.speed, 'Ping', _isConnected ? '18 ms' : '—'),
-                          const Divider(height: 16),
-                          _buildAnalyticRow(Icons.security, 'Protocol', 'WireGuard (ChaCha20)'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.info_outline, color: Colors.blueAccent, size: 20),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Lifetime Free • Zero Logs • Windows Tray Ready',
-                            style: TextStyle(fontSize: 12, color: Colors.blue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  Expanded(flex: 3, child: Center(child: shieldWidget)),
+                  const VerticalDivider(width: 32),
+                  Expanded(flex: 2, child: SingleChildScrollView(child: detailsWidget)),
                 ],
               ),
-            ),
-          ],
-        ),
+            );
+          } else {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  shieldWidget,
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  detailsWidget,
+                ],
+              ),
+            );
+          }
+        },
       ),
     );
   }

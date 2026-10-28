@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:pointycastle/api.dart' as pointycastle;
-import 'package:pointycastle/asymmetric/api.dart' as ec_api;
+import 'package:pointycastle/pointycastle.dart' as pointycastle;
 import 'package:pointycastle/signers/ecdsa_signer.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/digests/sha256.dart';
@@ -115,7 +116,7 @@ class SocialService {
     String? deviceId = prefs.getString('_deviceId');
     if (deviceId == null) {
       try {
-        deviceId = await FlutterUdid.consistentIdentity;
+        deviceId = await FlutterUdid.udid;
       } catch (e) {
         deviceId = const Uuid().v4();
       }
@@ -124,24 +125,31 @@ class SocialService {
     return deviceId;
   }
 
+  static pointycastle.SecureRandom _getSecureRandom() {
+    final secureRandom = pointycastle.FortunaRandom();
+    final rand = Random.secure();
+    final seeds = Uint8List(32);
+    for (int i = 0; i < 32; i++) {
+      seeds[i] = rand.nextInt(256);
+    }
+    secureRandom.seed(pointycastle.KeyParameter(seeds));
+    return secureRandom;
+  }
   /// Get or generate cryptographic key pair & signature for headers
   static Future<Map<String, String>> _getAuthHeaders(String payloadString) async {
     final deviceUuid = await _getDeviceId();
     final prefs = await SharedPreferences.getInstance();
-    
-    // Ensure keypair exists in prefs or generate
-    String? publicKey = prefs.getString('_publicKey');
-    String? privateKeyHex = prefs.getString('_privateKeyHex');
 
     if (publicKey == null || privateKeyHex == null) {
-      // Generate EC key pair
+      // Generate EC key pair using FortunaSecureRandom properly initialized
       final domainParams = pointycastle.ECDomainParameters('prime256v1');
       final keyGenParams = pointycastle.ECKeyGeneratorParameters(domainParams);
-      final keyGenerator = pointycastle.ECKeyGenerator()..init(keyGenParams);
+      final secureRandom = _getSecureRandom();
+      final keyGenerator = pointycastle.KeyGenerator('EC')..init(pointycastle.ParametersWithRandom(keyGenParams, secureRandom));
       final keyPair = keyGenerator.generateKeyPair();
 
-      final pubKey = keyPair.publicKey as ec_api.ECPublicKey;
-      final privKey = keyPair.privateKey as ec_api.ECPrivateKey;
+      final pubKey = keyPair.publicKey as pointycastle.ECPublicKey;
+      final privKey = keyPair.privateKey as pointycastle.ECPrivateKey;
 
       final pubBytes = pubKey.Q!.getEncoded(false);
       publicKey = base64Encode(pubBytes);
@@ -156,13 +164,13 @@ class SocialService {
     final messageBytes = utf8.encode(deviceUuid);
     
     // Sign using ECDSA signer
-    final privKeyParam = ec_api.ECPrivateKey(
+    final privKeyParam = pointycastle.ECPrivateKey(
       BigInt.parse(privateKeyHex, radix: 16),
       pointycastle.ECDomainParameters('prime256v1'),
     );
 
     final signer = ECDSASigner(SHA256Digest(), HMac(SHA256Digest(), 64));
-    signer.init(true, pointycastle.PrivateKeyParameter<ec_api.ECPrivateKey>(privKeyParam));
+    signer.init(true, pointycastle.PrivateKeyParameter<pointycastle.ECPrivateKey>(privKeyParam));
     
     final sig = signer.generateSignature(messageBytes) as pointycastle.ECSignature;
     

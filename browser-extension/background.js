@@ -78,7 +78,7 @@ async function fetchNodes() {
   }
 }
 
-// Apply Chrome proxy settings
+// Apply Chrome proxy settings with robust fallback logic and error recovery
 function applyProxySettings(node) {
   return new Promise((resolve, reject) => {
     if (!node || (!node.endpoint_ip && !node.ip)) {
@@ -88,6 +88,8 @@ function applyProxySettings(node) {
     const host = node.endpoint_ip || node.ip;
     const port = node.proxy_port || 1080;
 
+    // We try SOCKS5 first, but with graceful fallback or http scheme if SOCKS5 fails or times out.
+    // Also include robust bypass rules so local requests (and extension update/api endpoints) don't get blocked.
     const proxyConfig = {
       mode: 'fixed_servers',
       rules: {
@@ -96,13 +98,36 @@ function applyProxySettings(node) {
           host: host,
           port: parseInt(port, 10)
         },
-        bypassList: ['localhost', '127.0.0.1', '::1', '<local>']
+        fallbackProxy: {
+          scheme: 'http',
+          host: host,
+          port: parseInt(port, 10)
+        },
+        bypassList: ['localhost', '127.0.0.1', '::1', '<local>', '*.local', '10.*.*.*', '192.168.*.*', '172.16.*.*']
       }
     };
 
     chrome.proxy.settings.set({ value: proxyConfig, scope: 'regular' }, () => {
       if (chrome.runtime.lastError) {
-        return reject(new Error(chrome.runtime.lastError.message));
+        // Try fallback to http if socks5 fails configuration
+        const httpFallbackConfig = {
+          mode: 'fixed_servers',
+          rules: {
+            singleProxy: {
+              scheme: 'http',
+              host: host,
+              port: parseInt(port, 10)
+            },
+            bypassList: ['localhost', '127.0.0.1', '::1', '<local>']
+          }
+        };
+        chrome.proxy.settings.set({ value: httpFallbackConfig, scope: 'regular' }, () => {
+          if (chrome.runtime.lastError) {
+            return reject(new Error(chrome.runtime.lastError.message));
+          }
+          resolve();
+        });
+        return;
       }
       resolve();
     });
@@ -249,10 +274,51 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true; // async response indicator
 });
 
-// Proxy error listener
-chrome.proxy.onProxyError.addListener((details) => {
+// Proxy error listener with auto-recovery and fallback mechanism
+chrome.proxy.onProxyError.addListener(async (details) => {
   console.error('[MY_FREE_VPN] Chrome Proxy Error:', details);
-  updateState({
+  
+  // If we get net::ERR_PROXY_CONNECTION_FAILED or similar, attempt fallback to direct connection or HTTP proxy scheme
+  if (details.error && (details.error.includes('ERR_PROXY_CONNECTION_FAILED') || details.error.includes('ERR_SOCKS_CONNECTION_FAILED') || details.error.includes('ERR_TUNNEL_CONNECTION_FAILED'))) {
+    console.warn('[MY_FREE_VPN] Proxy connection failed. Attempting automatic recovery/fallback...');
+    
+    // If we have a selected node, try setting HTTP scheme instead of SOCKS5 as robust fallback
+    if (extensionState.selectedNode && extensionState.status === 'connected') {
+      const node = extensionState.selectedNode;
+      const host = node.endpoint_ip || node.ip;
+      const port = node.proxy_port || 1080;
+
+      const httpFallbackConfig = {
+        mode: 'fixed_servers',
+        rules: {
+          singleProxy: {
+            scheme: 'http',
+            host: host,
+            port: parseInt(port, 10)
+          },
+          bypassList: ['localhost', '127.0.0.1', '::1', '<local>', '*.local']
+        }
+      };
+
+      chrome.proxy.settings.set({ value: httpFallbackConfig, scope: 'regular' }, async () => {
+        if (!chrome.runtime.lastError) {
+          console.log('[MY_FREE_VPN] Successfully recovered using HTTP proxy fallback.');
+          await updateState({ lastError: 'Switched to HTTP proxy fallback due to SOCKS5 connectivity issue.' });
+          return;
+        } else {
+          // If fallback fails as well, clear proxy and set error state
+          await clearProxySettings();
+          await updateState({
+            status: 'error',
+            lastError: `Proxy Error: ${details.error} (Fallback failed)`
+          });
+        }
+      });
+      return;
+    }
+  }
+
+  await updateState({
     status: 'error',
     lastError: `Proxy Error: ${details.error}`
   });

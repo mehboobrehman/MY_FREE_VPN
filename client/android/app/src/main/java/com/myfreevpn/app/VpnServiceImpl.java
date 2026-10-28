@@ -79,7 +79,7 @@ public class VpnServiceImpl extends VpnService {
         Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
-                .setSmallIcon(R.drawable.ic_stat_vpn) // TODO: Add a small icon drawable
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
                 .build();
 
@@ -97,7 +97,7 @@ public class VpnServiceImpl extends VpnService {
             // Example using VpnService.Builder (highly simplified):
             Builder builder = new Builder();
             builder.addAddress("10.0.0.2", 24); // Example internal IP
-            builder.addRoute("0.0.0.0/0"); // Route all traffic
+            builder.addRoute("0.0.0.0", 0); // Route all traffic
             // Set MTU, DNS, etc. as needed
 
             // You might need to establish a connection to the serverUrl first to get tunnel config

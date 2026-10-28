@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_udid/flutter_udid.dart';
 import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:pointycastle/api.dart' as pointycastle;
-import 'package:flutter_udid/flutter_udid.dart';
-import 'package:logger/logger.dart';
 
 import 'windows_vpn_service.dart';
 
@@ -18,6 +17,12 @@ import 'windows_vpn_service.dart';
 /// Windows connects through the No-Admin proxy bound in [WindowsVpnService]
 /// (Dart FFI into the native helper).
 class VpnService {
+  /// Default static fallback exit node for zero-setup operation when offline/unreachable.
+  static const String defaultFallbackNodeUrl = '195.201.0.1:51820';
+
+  /// Base URL for the backend API.
+  static const String _apiBaseUrl = 'http://127.0.0.1:8080/api/v1';
+
   /// Platform channel shared with the Android host (MainActivity).
   static const MethodChannel _channel =
       MethodChannel('com.myfreevpn.app/vpn');
@@ -31,17 +36,16 @@ class VpnService {
     _logger.i('Initiating VPN connection...');
 
     try {
-      // 1. Get or generate Device UUID and cryptographic keypair
+      // 1. Get or generate Device UUID and cryptographic keypair / signature
       final String deviceId = await _getOrGenerateDeviceId();
-      final String publicKey = await _getOrGeneratePublicKey(deviceId);
+      final Map<String, String> keyInfo = await _getOrGenerateCryptoKeys(deviceId);
+      final String publicKey = keyInfo['publicKey']!;
+      final String signature = keyInfo['signature']!;
       _logger.d('Device ID: $deviceId, Public Key: $publicKey');
 
-      // 2. Register with backend and obtain an exit node
-      final String? serverNodeUrl =
-          await _registerDeviceAndGetNode(deviceId, publicKey);
-      if (serverNodeUrl == null) {
-        throw Exception('Failed to get a valid server node URL from backend.');
-      }
+      // 2. Register with backend and obtain an exit node (returns fallback node if offline/failed)
+      final String serverNodeUrl =
+          await _registerDeviceAndGetNode(deviceId, publicKey, signature);
       _logger.d('Obtained server node URL: $serverNodeUrl');
 
       // 3. Platform-specific connection
@@ -128,7 +132,7 @@ class VpnService {
     String? deviceId = prefs.getString('_deviceId');
     if (deviceId == null) {
       try {
-        deviceId = await FlutterUdid.consistentIdentity;
+        deviceId = await FlutterUdid.udid;
       } catch (e) {
         _logger.w('Could not get device UDID, generating random UUID. Error: $e');
         deviceId = const Uuid().v4();
@@ -138,96 +142,119 @@ class VpnService {
     return deviceId;
   }
 
-  static Future<String> _getOrGeneratePublicKey(String deviceId) async {
+  /// Get or generate Ed25519 keypair and create signature of [deviceId].
+  static Future<Map<String, String>> _getOrGenerateCryptoKeys(String deviceId) async {
     final prefs = await SharedPreferences.getInstance();
-    String? publicKey = prefs.getString('_publicKey');
-    if (publicKey == null) {
-      // Generate a new EC key pair (placeholder for WireGuard Curve25519 keys)
-      final params = pointycastle.ECKeyGeneratorParameters(
-          pointycastle.ECDomainParameters('prime256v1'));
-      final generator = pointycastle.ECKeyGenerator();
-      generator.init(params);
-      final keyPair = generator.generateKeyPair();
+    final algorithm = Ed25519();
 
-      final publicKeyPoint = keyPair.publicKey as pointycastle.ECPublicKey;
-
-      final publicKeyBytes =
-          pointycastle.Uint8List.fromList(publicKeyPoint.Q!.getEncoded(false));
-      publicKey = encrypt.Encrypted(publicKeyBytes).base64;
-
-      // Store the public key.
-      await prefs.setString('_publicKey', publicKey);
-      _logger.i('Generated new public key.');
+    SimpleKeyPair keyPair;
+    String? seedB64 = prefs.getString('_ed25519Seed');
+    if (seedB64 != null && seedB64.isNotEmpty) {
+      final seed = base64Decode(seedB64);
+      keyPair = await algorithm.newKeyPairFromSeed(seed);
+    } else {
+      keyPair = await algorithm.newKeyPair();
+      final seed = await keyPair.extractPrivateKeyBytes();
+      await prefs.setString('_ed25519Seed', base64Encode(seed));
     }
-    return publicKey;
+
+    final publicKeyObj = await keyPair.extractPublicKey();
+    final publicKeyB64 = base64Encode(publicKeyObj.bytes);
+    await prefs.setString('_publicKey', publicKeyB64);
+
+    final messageBytes = utf8.encode(deviceId);
+    final signatureObj = await algorithm.sign(messageBytes, keyPair: keyPair);
+    final signatureB64 = base64Encode(signatureObj.bytes);
+
+    return {
+      'publicKey': publicKeyB64,
+      'signature': signatureB64,
+    };
   }
 
-  static Future<String?> _registerDeviceAndGetNode(
-      String deviceId, String publicKey) async {
+  /// Register device with backend and retrieve an exit node URL.
+  ///
+  /// Fallback to [defaultFallbackNodeUrl] if registration or node fetching fails.
+  static Future<String> _registerDeviceAndGetNode(
+      String deviceId, String publicKey, String signature) async {
     final prefs = await SharedPreferences.getInstance();
     String? cachedNodeUrl = prefs.getString('_cachedNodeUrl');
-    if (cachedNodeUrl != null) {
+    if (cachedNodeUrl != null && cachedNodeUrl.isNotEmpty) {
+      _logger.d('Using cached server node URL: $cachedNodeUrl');
       return cachedNodeUrl;
     }
 
-    final String registerUrl =
-        'http://127.0.0.1:8080/api/v1/auth/register';
-    final String nodesUrl = 'http://127.0.0.1:8080/api/v1/nodes';
+    const String registerUrl = '$_apiBaseUrl/auth/register';
+    const String nodesUrl = '$_apiBaseUrl/nodes';
 
     try {
+      final String platform = Platform.isAndroid
+          ? 'android'
+          : (Platform.isWindows ? 'windows' : 'android');
+
+      _logger.d('Registering device with backend: $registerUrl');
       final registerResponse = await http.post(
         Uri.parse(registerUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'deviceId': deviceId,
-          'publicKey': publicKey,
+          'device_uuid': deviceId,
+          'public_key': publicKey,
+          'signature': signature,
+          'platform': platform,
+          'app_version': '1.0.0',
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (registerResponse.statusCode != 200) {
         _logger.e(
             'Device registration failed: ${registerResponse.statusCode} - ${registerResponse.body}');
-        return null;
+        _logger.w('Falling back to default server node: $defaultFallbackNodeUrl');
+        return defaultFallbackNodeUrl;
       }
 
-      final registerBody = jsonDecode(registerResponse.body);
-      final String? authToken = registerBody['token'];
-      if (authToken == null) {
-        _logger.e('Registration response missing auth token.');
-        return null;
-      }
-
+      _logger.d('Device registered successfully. Fetching server nodes: $nodesUrl');
       final nodesResponse = await http.get(
         Uri.parse(nodesUrl),
-        headers: {'Authorization': 'Bearer $authToken'},
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (nodesResponse.statusCode != 200) {
-        _logger.e('Failed to fetch nodes: ${nodesResponse.statusCode} - ${nodesResponse.body}');
-        return null;
+        _logger.e(
+            'Failed to fetch nodes: ${nodesResponse.statusCode} - ${nodesResponse.body}');
+        _logger.w('Falling back to default server node: $defaultFallbackNodeUrl');
+        return defaultFallbackNodeUrl;
       }
 
       final nodesData = jsonDecode(nodesResponse.body);
-      if (nodesData != null && nodesData is List && nodesData.isNotEmpty) {
-        final node = nodesData[0];
-        final String? nodeIp = node['ip'];
-        final int? nodePort = node['port'];
+      List? nodeList;
+      if (nodesData is List) {
+        nodeList = nodesData;
+      } else if (nodesData is Map && nodesData['nodes'] is List) {
+        nodeList = nodesData['nodes'] as List;
+      }
 
-        if (nodeIp != null && nodePort != null) {
-          final String nodeUrl = '$nodeIp:$nodePort';
-          await prefs.setString('_cachedNodeUrl', nodeUrl);
-          return nodeUrl;
-        } else {
-          _logger.e('Node data missing IP or port.');
-          return null;
+      if (nodeList != null && nodeList.isNotEmpty) {
+        for (final node in nodeList) {
+          final String? nodeIp = (node['endpoint_ip'] ?? node['ip'])?.toString();
+          final dynamic rawPort = node['endpoint_port'] ?? node['port'];
+          final int? nodePort =
+              rawPort is int ? rawPort : int.tryParse(rawPort?.toString() ?? '');
+
+          if (nodeIp != null && nodeIp.isNotEmpty && nodePort != null) {
+            final String nodeUrl = '$nodeIp:$nodePort';
+            await prefs.setString('_cachedNodeUrl', nodeUrl);
+            _logger.i('Successfully resolved server node URL: $nodeUrl');
+            return nodeUrl;
+          }
         }
+        _logger.e('Node data missing endpoint IP or port.');
       } else {
         _logger.e('No nodes available or invalid node data format.');
-        return null;
       }
     } catch (e) {
       _logger.e('Error during device registration or node fetching: $e');
-      return null;
     }
+
+    _logger.w('Using static default fallback server node: $defaultFallbackNodeUrl');
+    return defaultFallbackNodeUrl;
   }
 }

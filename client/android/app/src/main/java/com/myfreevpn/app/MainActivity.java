@@ -44,7 +44,7 @@ public class MainActivity extends FlutterActivity {
         case "connect":
           Intent connectIntent = new Intent(activity, VpnServiceImpl.class);
           connectIntent.setAction("connect");
-          connectIntent.putExtra("arguments", call.arguments);
+          connectIntent.putExtra("arguments", (java.io.Serializable) call.arguments);
           activity.startService(connectIntent);
           result.success(null);
           break;
