@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:my_free_vpn/services/vpn_service.dart';
+import 'package:my_free_vpn/widgets/debug_screen.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -210,6 +212,14 @@ class _VpnHomeScreenState extends State<VpnHomeScreen> {
           ],
         ),
         actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.bug_report),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DebugScreen()),
+              ),
+              tooltip: 'Debug & Telemetry',
+            ),
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 16.0),
