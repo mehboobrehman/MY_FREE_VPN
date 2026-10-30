@@ -6,9 +6,11 @@ const sessionRoutes = require('./routes/session');
 const socialRoutes = require('./routes/social');
 const smartDnsRoutes = require('./routes/smartdns');
 const legacyRoutes = require('./routes/legacy');
+const configRoutes = require('./routes/config');
+const telemetryRoutes = require('./routes/telemetry');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 48392;
 
 app.use(bodyParser.json());
 
@@ -21,6 +23,8 @@ app.use(`${API_PREFIX}/session`, sessionRoutes);
 app.use(`${API_PREFIX}/social`, socialRoutes);
 app.use(`${API_PREFIX}/smartdns`, smartDnsRoutes);
 app.use(`${API_PREFIX}/legacy`, legacyRoutes);
+app.use(`${API_PREFIX}/config`, configRoutes);
+app.use(`${API_PREFIX}/telemetry`, telemetryRoutes);
 
 // Health check
 app.get(`${API_PREFIX}/status`, (_req, res) => {

@@ -2,7 +2,7 @@ name: my_free_vpn
 description: A free VPN for android and windows for lifetime with zero setup.
 publish_to: 'none'
 
-version: 1.1.12+13
+version: 1.1.11+11
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

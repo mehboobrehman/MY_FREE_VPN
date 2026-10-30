@@ -1,10 +1,15 @@
-#ifndef GENERATED_PLUGIN_REGISTRANT_H_
-#define GENERATED_PLUGIN_REGISTRANT_H_
+//
+//  Generated file. Do not edit.
+//
 
-#include <flutter/flutter_engine.h>
+// clang-format off
 
-// Registers all platform plugins with the given Flutter engine, including the
-// Windows No-Admin VPN plugin (MethodChannel: com.myfreevpn.app/vpn).
-void GeneratedPluginRegistrantRegisterWith(flutter::FlutterEngine* engine);
+#ifndef GENERATED_PLUGIN_REGISTRANT_
+#define GENERATED_PLUGIN_REGISTRANT_
 
-#endif  // GENERATED_PLUGIN_REGISTRANT_H_
+#include <flutter/plugin_registry.h>
+
+// Registers Flutter plugins.
+void RegisterPlugins(flutter::PluginRegistry* registry);
+
+#endif  // GENERATED_PLUGIN_REGISTRANT_
