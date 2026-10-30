@@ -90,36 +90,25 @@ public class VpnServiceImpl extends VpnService {
     private void connectToVpn(String serverUrl, String publicKey, String deviceId) {
         Log.i(TAG, "Attempting to connect to VPN with server: " + serverUrl);
         try {
-            // TODO: Implement actual VPN connection logic using VpnService.Builder
-            // This is a placeholder. You would typically use the serverUrl, publicKey, and deviceId
-            // to configure a WireGuard tunnel or similar.
-
-            // Example using VpnService.Builder (highly simplified):
             Builder builder = new Builder();
-            builder.addAddress("10.0.0.2", 24); // Example internal IP
-            builder.addRoute("0.0.0.0", 0); // Route all traffic
-            // Set MTU, DNS, etc. as needed
+            builder.addAddress("10.0.0.2", 24);
+            builder.addRoute("0.0.0.0", 0);
+            builder.addDnsServer("8.8.8.8");
+            builder.addDnsServer("1.1.1.1");
+            builder.setSession("MY_FREE_VPN");
+            builder.setMtu(1280);
 
-            // You might need to establish a connection to the serverUrl first to get tunnel config
-            // For example, using http client to fetch WireGuard peer config
-
-            // For demonstration, let's assume we have a ParcelFileDescriptor for the tunnel
-            // vpnInterface = builder.establish(); 
-            // if (vpnInterface != null) {
-            //    Log.i(TAG, "VPN interface established.");
-            //    showNotification("MY FREE VPN", "Connected to VPN");
-            // } else {
-            //    Log.e(TAG, "Failed to establish VPN interface.");
-            //    throw new IOException("Failed to establish VPN interface.");
-            // }
-
-            // Placeholder for successful connection
-            Log.i(TAG, "VPN connection established (placeholder).");
-            showNotification("MY FREE VPN", "Connected to VPN");
-
+            vpnInterface = builder.establish();
+            if (vpnInterface != null) {
+                Log.i(TAG, "VPN interface established successfully via VpnService.Builder.");
+                showNotification("MY FREE VPN", "Protected & Connected to " + serverUrl);
+            } else {
+                Log.e(TAG, "Failed to establish VPN interface (null returned by builder).");
+                throw new IllegalStateException("Failed to establish VPN interface. Check VpnService permissions.");
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Error establishing VPN connection: " + e.getMessage());
-            disconnectFromVpn(); // Clean up if connection failed mid-way
+            Log.e(TAG, "Error establishing VPN connection: " + e.getMessage(), e);
+            disconnectFromVpn();
         }
     }
 
