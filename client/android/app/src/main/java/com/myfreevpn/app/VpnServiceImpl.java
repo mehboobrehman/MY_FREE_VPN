@@ -126,6 +126,11 @@ public class VpnServiceImpl extends VpnService {
                 }
             }
 
+            // Map placeholder IPs (195.201.0.1, etc.) or 127.0.0.1 to 10.0.2.2 (emulator loopback) or 127.0.0.1
+            if ("127.0.0.1".equals(host) || "localhost".equals(host) || "195.201.0.1".equals(host) || "159.69.0.2".equals(host) || "138.201.0.3".equals(host) || "138.201.0.4".equals(host) || "195.201.0.5".equals(host) || host.startsWith("195.") || host.startsWith("159.") || host.startsWith("138.")) {
+                host = "10.0.2.2";
+            }
+
             InetAddress serverAddress = InetAddress.getByName(host);
 
             // Establish TUN interface

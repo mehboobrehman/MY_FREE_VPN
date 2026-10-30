@@ -8,6 +8,7 @@ const smartDnsRoutes = require('./routes/smartdns');
 const legacyRoutes = require('./routes/legacy');
 const configRoutes = require('./routes/config');
 const telemetryRoutes = require('./routes/telemetry');
+const proxyRoutes = require('./routes/proxy');
 
 const app = express();
 const PORT = process.env.PORT || 48392;
@@ -25,6 +26,14 @@ app.use(`${API_PREFIX}/smartdns`, smartDnsRoutes);
 app.use(`${API_PREFIX}/legacy`, legacyRoutes);
 app.use(`${API_PREFIX}/config`, configRoutes);
 app.use(`${API_PREFIX}/telemetry`, telemetryRoutes);
+app.use(`${API_PREFIX}/proxy`, proxyRoutes);
+
+app.use((req, res, next) => {
+  if (req.url && (req.url.startsWith('http://') || req.url.startsWith('https://'))) {
+    return proxyRoutes(req, res, next);
+  }
+  next();
+});
 
 // Health check
 app.get(`${API_PREFIX}/status`, (_req, res) => {

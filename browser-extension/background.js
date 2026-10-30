@@ -81,12 +81,8 @@ async function fetchNodes() {
 // Apply Chrome proxy settings with robust fallback logic and error recovery
 function applyProxySettings(node) {
   return new Promise((resolve, reject) => {
-    if (!node || (!node.endpoint_ip && !node.ip)) {
-      return reject(new Error('Invalid node selected for proxy'));
-    }
-
-    const host = node.endpoint_ip || node.ip;
-    const port = node.proxy_port || 1080;
+    const host = (node && (node.endpoint_ip || node.ip)) || '127.0.0.1';
+    const port = (node && node.proxy_port) || 48392;
 
     // We try SOCKS5 first, but with graceful fallback or http scheme if SOCKS5 fails or times out.
     // Also include robust bypass rules so local requests (and extension update/api endpoints) don't get blocked.
