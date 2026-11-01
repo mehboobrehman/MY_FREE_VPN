@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
 
 class WindowsVpnService {
-  static const String _libName = 'my_free_vpn_win'; // Name of the Go executable
+  static const String _libName = 'my-free-vpn'; // Name of the Go executable
   static DynamicLibrary? _dylib;
 
   // Load the dynamic library

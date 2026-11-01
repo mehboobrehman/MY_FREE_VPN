@@ -108,7 +108,7 @@ class UserProfile {
 
 class SocialService {
   static final Logger _logger = Logger();
-  static const String baseUrl = 'http://127.0.0.1:8080/api/v1/social';
+  static const String baseUrl = 'http://127.0.0.1:48392/api/v1/social';
 
   /// Get or generate Device UUID
   static Future<String> _getDeviceId() async {

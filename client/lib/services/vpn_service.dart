@@ -21,7 +21,7 @@ class VpnService {
   static const String defaultFallbackNodeUrl = '195.201.0.1:51820';
 
   /// Base URL for the backend API.
-  static const String _apiBaseUrl = 'http://127.0.0.1:8080/api/v1';
+  static const String _apiBaseUrl = 'http://127.0.0.1:48392/api/v1';
 
   /// Platform channel shared with the Android host (MainActivity).
   static const MethodChannel _channel =

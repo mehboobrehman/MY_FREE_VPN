@@ -5,7 +5,7 @@
 
 import { getOrCreateIdentity } from './lib/crypto-identity.js';
 
-const DEFAULT_API_BASE_URL = 'http://localhost:8080/api/v1';
+const DEFAULT_API_BASE_URL = 'https://api.myfreevpn.net/api/v1';
 
 // Initial state
 let extensionState = {
@@ -84,17 +84,12 @@ function applyProxySettings(node) {
     const host = (node && (node.endpoint_ip || node.ip)) || '127.0.0.1';
     const port = (node && node.proxy_port) || 48392;
 
-    // We try SOCKS5 first, but with graceful fallback or http scheme if SOCKS5 fails or times out.
+    // We use HTTP CONNECT as the primary proxy scheme to match backend support.
     // Also include robust bypass rules so local requests (and extension update/api endpoints) don't get blocked.
     const proxyConfig = {
       mode: 'fixed_servers',
       rules: {
         singleProxy: {
-          scheme: 'socks5',
-          host: host,
-          port: parseInt(port, 10)
-        },
-        fallbackProxy: {
           scheme: 'http',
           host: host,
           port: parseInt(port, 10)
@@ -282,7 +277,7 @@ chrome.proxy.onProxyError.addListener(async (details) => {
     if (extensionState.selectedNode && extensionState.status === 'connected') {
       const node = extensionState.selectedNode;
       const host = node.endpoint_ip || node.ip;
-      const port = node.proxy_port || 1080;
+      const port = node.proxy_port || 48392;
 
       const httpFallbackConfig = {
         mode: 'fixed_servers',
