@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_udid/flutter_udid.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
+import 'package:my_free_vpn/config/version_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -21,19 +22,50 @@ class VpnService {
   static const String defaultFallbackNodeUrl = '195.201.0.1:51820';
 
   /// Base URL for the backend API.
-  static const String _apiBaseUrl = 'http://127.0.0.1:48392/api/v1';
+  static String get _apiBaseUrl => Platform.isAndroid
+      ? 'http://10.0.2.2:48392/api/v1'
+      : 'http://127.0.0.1:48392/api/v1';
 
   /// Platform channel shared with the Android host (MainActivity).
   static const MethodChannel _channel =
       MethodChannel('com.myfreevpn.app/vpn');
   static final Logger _logger = Logger();
 
+  /// Fetch available exit nodes dynamically from the backend API (`GET /api/v1/nodes`).
+  static Future<List<Map<String, dynamic>>> fetchNodes() async {
+    final String nodesUrl = '$_apiBaseUrl/nodes';
+    try {
+      _logger.d('Fetching nodes from: $nodesUrl');
+      final response = await http.get(
+        Uri.parse(nodesUrl),
+      ).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List? nodeList;
+        if (data is List) {
+          nodeList = data;
+        } else if (data is Map && data['nodes'] is List) {
+          nodeList = data['nodes'] as List;
+        }
+
+        if (nodeList != null) {
+          return nodeList.map((n) => Map<String, dynamic>.from(n)).toList();
+        }
+      } else {
+        _logger.w('Failed to fetch nodes: HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      _logger.e('Error fetching nodes: $e');
+    }
+    return [];
+  }
+
   /// Establish a VPN tunnel on the current platform.
   ///
-  /// Registers the device with the backend, obtains an exit node, then hands
-  /// off to the platform-specific connector.
-  static Future<void> connect() async {
-    _logger.i('Initiating VPN connection...');
+  /// Optionally accepts [nodeUrl] to prioritize a user-selected exit node over auto-selection.
+  static Future<void> connect({String? nodeUrl}) async {
+    _logger.i('Initiating VPN connection (nodeUrl: $nodeUrl)...');
 
     try {
       // 1. Get or generate Device UUID and cryptographic keypair / signature
@@ -43,12 +75,14 @@ class VpnService {
       final String signature = keyInfo['signature']!;
       _logger.d('Device ID: $deviceId, Public Key: $publicKey');
 
-      // 2. Register with backend and obtain an exit node (returns fallback node if offline/failed)
-      final String serverNodeUrl =
-          await _registerDeviceAndGetNode(deviceId, publicKey, signature);
+      // 2. Register device with backend
+      await _registerDevice(deviceId, publicKey, signature);
+
+      // 3. Determine server node URL (use user-selected nodeUrl if provided, else auto-resolve)
+      final String serverNodeUrl = nodeUrl ?? await _registerDeviceAndGetNode(deviceId, publicKey, signature);
       _logger.d('Obtained server node URL: $serverNodeUrl');
 
-      // 3. Platform-specific connection
+      // 4. Platform-specific connection
       if (Platform.isAndroid) {
         await _channel.invokeMethod('connect', {
           'serverUrl': serverNodeUrl,
@@ -172,6 +206,30 @@ class VpnService {
     };
   }
 
+  static Future<void> _registerDevice(String deviceId, String publicKey, String signature) async {
+    final String registerUrl = '$_apiBaseUrl/auth/register';
+    final String platform = Platform.isAndroid
+        ? 'android'
+        : (Platform.isWindows ? 'windows' : 'android');
+
+    _logger.d('Registering device with backend: $registerUrl');
+    final response = await http.post(
+      Uri.parse(registerUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'device_uuid': deviceId,
+        'public_key': publicKey,
+        'signature': signature,
+        'platform': platform,
+        'app_version': VersionConfig.version,
+      }),
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Device registration failed with HTTP ${response.statusCode}');
+    }
+  }
+
   /// Register device with backend and retrieve an exit node URL.
   ///
   /// Fallback to [defaultFallbackNodeUrl] if registration or node fetching fails.
@@ -184,56 +242,10 @@ class VpnService {
       return cachedNodeUrl;
     }
 
-    const String registerUrl = '$_apiBaseUrl/auth/register';
-    const String nodesUrl = '$_apiBaseUrl/nodes';
-
     try {
-      final String platform = Platform.isAndroid
-          ? 'android'
-          : (Platform.isWindows ? 'windows' : 'android');
-
-      _logger.d('Registering device with backend: $registerUrl');
-      final registerResponse = await http.post(
-        Uri.parse(registerUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'device_uuid': deviceId,
-          'public_key': publicKey,
-          'signature': signature,
-          'platform': platform,
-          'app_version': '1.0.0',
-        }),
-      ).timeout(const Duration(seconds: 10));
-
-      if (registerResponse.statusCode != 200) {
-        _logger.e(
-            'Device registration failed: ${registerResponse.statusCode} - ${registerResponse.body}');
-        _logger.w('Falling back to default server node: $defaultFallbackNodeUrl');
-        return defaultFallbackNodeUrl;
-      }
-
-      _logger.d('Device registered successfully. Fetching server nodes: $nodesUrl');
-      final nodesResponse = await http.get(
-        Uri.parse(nodesUrl),
-      ).timeout(const Duration(seconds: 10));
-
-      if (nodesResponse.statusCode != 200) {
-        _logger.e(
-            'Failed to fetch nodes: ${nodesResponse.statusCode} - ${nodesResponse.body}');
-        _logger.w('Falling back to default server node: $defaultFallbackNodeUrl');
-        return defaultFallbackNodeUrl;
-      }
-
-      final nodesData = jsonDecode(nodesResponse.body);
-      List? nodeList;
-      if (nodesData is List) {
-        nodeList = nodesData;
-      } else if (nodesData is Map && nodesData['nodes'] is List) {
-        nodeList = nodesData['nodes'] as List;
-      }
-
-      if (nodeList != null && nodeList.isNotEmpty) {
-        for (final node in nodeList) {
+      final nodes = await fetchNodes();
+      if (nodes.isNotEmpty) {
+        for (final node in nodes) {
           final String? nodeIp = (node['endpoint_ip'] ?? node['ip'])?.toString();
           final dynamic rawPort = node['endpoint_port'] ?? node['port'];
           final int? nodePort =
@@ -246,12 +258,9 @@ class VpnService {
             return nodeUrl;
           }
         }
-        _logger.e('Node data missing endpoint IP or port.');
-      } else {
-        _logger.e('No nodes available or invalid node data format.');
       }
     } catch (e) {
-      _logger.e('Error during device registration or node fetching: $e');
+      _logger.e('Error during node fetching: $e');
     }
 
     _logger.w('Using static default fallback server node: $defaultFallbackNodeUrl');

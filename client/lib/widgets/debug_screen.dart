@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_free_vpn/config/version_config.dart';
 import '../services/agent_logger.dart';
 
 /// Debug UI / Debug Drawer / activity in the Android client to view recent log entries,
@@ -72,7 +73,7 @@ class _DebugScreenState extends State<DebugScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Server Status: $_serverStatus',
+                        'Server Status: $_serverStatus (v${VersionConfig.version})',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       const SizedBox(height: 4),

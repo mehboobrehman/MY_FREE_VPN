@@ -15,7 +15,7 @@ function createZip(sourceDir, outPath) {
 }
 
 async function run() {
-  const version = '1.1.16';
+  const version = '1.1.17';
   
   // 1. Update manifest.json version
   const manifestPath = path.join('browser-extension', 'manifest.json');
@@ -64,9 +64,9 @@ async function run() {
   await createZip(debugDir, debugZip);
   await createZip(releaseDir, releaseZip);
 
-  // 5. Generate APK artifacts for v1.1.16 from existing APK binaries if available
-  const srcDebugApk = 'MY_FREE_VPN_v1.1.15_debug.apk';
-  const srcReleaseApk = 'MY_FREE_VPN_v1.1.15_release.apk';
+  // 5. Generate APK artifacts for v1.1.17 from existing APK binaries if available
+  const srcDebugApk = 'MY_FREE_VPN_v1.1.17_debug.apk';
+  const srcReleaseApk = 'MY_FREE_VPN_v1.1.17_release.apk';
   const targetDebugApk = `MY_FREE_VPN_v${version}_debug.apk`;
   const targetReleaseApk = `MY_FREE_VPN_v${version}_release.apk`;
 
@@ -74,7 +74,7 @@ async function run() {
     fs.copyFileSync(srcDebugApk, targetDebugApk);
     console.log(`Created ${targetDebugApk}`);
   } else {
-    fs.writeFileSync(targetDebugApk, 'DEBUG APK v1.1.16 placeholder binary');
+    fs.writeFileSync(targetDebugApk, 'DEBUG APK v1.1.17 placeholder binary');
     console.log(`Created placeholder ${targetDebugApk}`);
   }
 
@@ -82,7 +82,7 @@ async function run() {
     fs.copyFileSync(srcReleaseApk, targetReleaseApk);
     console.log(`Created ${targetReleaseApk}`);
   } else {
-    fs.writeFileSync(targetReleaseApk, 'RELEASE APK v1.1.16 placeholder binary');
+    fs.writeFileSync(targetReleaseApk, 'RELEASE APK v1.1.17 placeholder binary');
     console.log(`Created placeholder ${targetReleaseApk}`);
   }
 
