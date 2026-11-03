@@ -42,3 +42,17 @@ This document tracks all core architectural, design, data model, and API contrac
 Established standardized shared data contracts and API specifications for MY_FREE_VPN to ensure seamless cross-layer communication.
 
 **Impact**: All agents (Frontend, Backend, DevOps, Client) referencing data models and API contracts
+
+## Live Debug Telemetry Phase 1: Envelope, Discovery, Gating & Section I Extensions
+**When**: 2026-11-03 19:01:03
+
+Phase 1 Live Debug Telemetry establishes versioned message envelopes, endpoint discovery (Local Wi-Fi + Cloud Relay fallback), strict debug-only release gating, and foundational Section I extension structures (I1-I4) with full unit test coverage.
+
+**Impact**: Backend telemetry route, contracts/telemetry_envelope.json, telemetry tests
+
+## Live Debug Telemetry Phase 5: Developer Tooling, Documentation & CI Gating
+**When**: 2026-11-03 19:38:39
+
+Phase 5 establishes comprehensive developer CLI tooling, protocol documentation, text-based architecture diagrams, security and privacy models, and automated CI release build gating to ensure telemetry code is strictly gated in production.
+
+**Impact**: Developer tooling (`tools/live_debug.js`), documentation (`docs/LIVE_DEBUG_TELEMETRY.md`), and CI release build gating (`tools/check_release_gating.js` and `.github/workflows/telemetry_release_gating.…

@@ -59,13 +59,21 @@ class AgentLogger {
 
   static Future<Database> _initDb() async {
     String path;
-    if (Platform.isAndroid || Platform.isIOS) {
-      final Directory documentsDirectory = await getApplicationDocumentsDirectory();
-      path = '${documentsDirectory.path}/my_free_vpn_telemetry.db';
-    } else {
-      // For desktop / tests, use current directory or temporary directory
-      final Directory tempDir = await getTemporaryDirectory();
-      path = '${tempDir.path}/my_free_vpn_telemetry.db';
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        final Directory documentsDirectory = await getApplicationDocumentsDirectory();
+        path = '${documentsDirectory.path}/my_free_vpn_telemetry.db';
+      } else {
+        // For desktop / tests, use current directory or temporary directory
+        final Directory tempDir = await getTemporaryDirectory();
+        path = '${tempDir.path}/my_free_vpn_telemetry.db';
+      }
+    } catch (_) {
+      try {
+        path = '${await getDatabasesPath()}/my_free_vpn_telemetry.db';
+      } catch (_) {
+        path = 'my_free_vpn_telemetry.db';
+      }
     }
 
     return await openDatabase(

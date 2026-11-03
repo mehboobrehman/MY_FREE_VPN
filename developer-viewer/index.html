@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY_FREE_VPN - Live Debug Telemetry Developer Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="bg-cyan-500 w-3 h-3 rounded-full animate-pulse" id="connection-indicator"></div>
+      <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">MY_FREE_VPN Developer Telemetry Viewer</h1>
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.1.18 Phase 4</span>
+    </div>
+    <div class="flex items-center space-x-4">
+      <div id="live-status" class="text-xs text-emerald-400 flex items-center space-x-1">
+        <span>● Live Tail Active</span>
+      </div>
+      <button id="btn-toggle-live" onclick="toggleLiveTail()" class="px-3 py-1 text-xs font-semibold rounded bg-indigo-600 hover:bg-indigo-500 text-white transition">Pause Live</button>
+    </div>
+  </header>
+
+  <!-- Controls Bar -->
+  <section class="bg-slate-900/60 border-b border-slate-800 px-6 py-3 flex flex-wrap items-center gap-4 text-sm">
+    <div class="flex items-center space-x-2">
+      <label class="text-slate-400 font-medium">Session:</label>
+      <select id="session-select" onchange="onSessionChange()" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 min-w-[240px]">
+        <option value="">-- Select Session --</option>
+      </select>
+      <button onclick="loadSessions()" class="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-slate-300" title="Refresh Sessions">🔄</button>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <label class="text-slate-400 font-medium">Type:</label>
+      <select id="type-filter" onchange="applyFilters()" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        <option value="">All Types</option>
+        <option value="crash">Crash</option>
+        <option value="anr">ANR</option>
+        <option value="network">Network</option>
+        <option value="performance_sample">Performance</option>
+        <option value="state_inspection">State Inspection</option>
+        <option value="debugger_attach">Debugger</option>
+        <option value="runtime_logpoints">Logpoints</option>
+        <option value="trigger_snapshots">Snapshots</option>
+        <option value="event">Event</option>
+      </select>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <label class="text-slate-400 font-medium">Level:</label>
+      <select id="level-filter" onchange="applyFilters()" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        <option value="">All Levels</option>
+        <option value="debug">DEBUG</option>
+        <option value="info">INFO</option>
+        <option value="warn">WARN</option>
+        <option value="error">ERROR</option>
+      </select>
+    </div>
+
+    <div class="flex-1 min-w-[200px] flex items-center space-x-2">
+      <input type="text" id="search-input" oninput="applyFilters()" placeholder="Search payload, message, device..." class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm">
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button onclick="exportSession('json')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-400 rounded text-xs font-semibold transition">Export JSON</button>
+      <button onclick="exportSession('har')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 rounded text-xs font-semibold transition">Export HAR</button>
+    </div>
+  </section>
+
+  <!-- Main Split Dashboard -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+    <!-- Left Column: Event Stream List -->
+    <div class="lg:col-span-7 border-r border-slate-800 flex flex-col h-[calc(100vh-140px)] overflow-hidden">
+      <div class="bg-slate-900/40 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 font-semibold uppercase tracking-wider">
+        <span>Event Stream (<span id="event-count">0</span> events)</span>
+        <span id="device-info-badge">No Device Selected</span>
+      </div>
+      <div id="event-stream" class="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-800/60">
+        <div class="p-8 text-center text-slate-500 text-sm">Select a session above to view telemetry event stream.</div>
+      </div>
+    </div>
+
+    <!-- Right Column: Inspector & Network Detail View -->
+    <div class="lg:col-span-5 flex flex-col h-[calc(100vh-140px)] bg-slate-950/40 overflow-hidden">
+      <div class="bg-slate-900/40 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 font-semibold uppercase tracking-wider">
+        <span>Event & Network Inspector</span>
+        <span id="inspect-type-badge">—</span>
+      </div>
+      <div id="inspector-content" class="flex-1 overflow-y-auto custom-scrollbar p-4 text-xs font-mono text-slate-300">
+        <div class="text-slate-500 text-center py-12">Click an event in the stream to inspect details, network requests, headers, and payloads.</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let sessions = [];
+    let currentSessionEvents = [];
+    let selectedEvent = null;
+    let isLiveTailActive = true;
+    let pollInterval = null;
+
+    async function loadSessions() {
+      try {
+        const res = await fetch('/api/v1/telemetry/sessions');
+        const data = await res.json();
+        if (data.status === 'success') {
+          sessions = data.sessions || [];
+          const select = document.getElementById('session-select');
+          const currentVal = select.value;
+          select.innerHTML = '<option value="">-- Select Session (' + sessions.length + ') --</option>';
+          sessions.forEach(s => {
+            const dateStr = new Date(s.start_time).toLocaleTimeString();
+            const opt = document.createElement('option');
+            opt.value = s.session_id;
+            opt.textContent = `[${s.device_id.substring(0, 8)}...] Session ${s.session_id.substring(0, 8)} (${s.event_count} events @ ${dateStr})`;
+            select.appendChild(opt);
+          });
+          if (currentVal && sessions.some(s => s.session_id === currentVal)) {
+            select.value = currentVal;
+          } else if (sessions.length > 0 && !currentVal) {
+            select.value = sessions[0].session_id;
+            onSessionChange();
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load sessions:', err);
+      }
+    }
+
+    async function onSessionChange() {
+      const sessionId = document.getElementById('session-select').value;
+      if (!sessionId) {
+        currentSessionEvents = [];
+        renderEvents([]);
+        return;
+      }
+      const session = sessions.find(s => s.session_id === sessionId);
+      if (session) {
+        document.getElementById('device-info-badge').textContent = `Device: ${session.device_id}`;
+      }
+      await fetchSessionEvents(sessionId);
+    }
+
+    async function fetchSessionEvents(sessionId) {
+      try {
+        const typeF = document.getElementById('type-filter').value;
+        const levelF = document.getElementById('level-filter').value;
+        const searchF = document.getElementById('search-input').value;
+
+        let url = `/api/v1/telemetry/sessions/${sessionId}?`;
+        if (typeF) url += `type=${encodeURIComponent(typeF)}&`;
+        if (levelF) url += `level=${encodeURIComponent(levelF)}&`;
+        if (searchF) url += `search=${encodeURIComponent(searchF)}&`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'success') {
+          currentSessionEvents = data.events || [];
+          renderEvents(currentSessionEvents);
+        }
+      } catch (err) {
+        console.error('Failed to fetch session events:', err);
+      }
+    }
+
+    function applyFilters() {
+      const sessionId = document.getElementById('session-select').value;
+      if (sessionId) {
+        fetchSessionEvents(sessionId);
+      }
+    }
+
+    function renderEvents(events) {
+      document.getElementById('event-count').textContent = events.length;
+      const container = document.getElementById('event-stream');
+      if (events.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-500 text-sm">No telemetry events found matching criteria.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      events.forEach((ev, idx) => {
+        const type = ev.message_type || ev.eventType || ev.type || 'unknown';
+        const level = ev.level || (ev.payload && ev.payload.level) || 'info';
+        const time = new Date(ev.wall_clock_timestamp || ev.receivedAt || Date.now()).toLocaleTimeString();
+        
+        let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (type === 'crash') badgeColor = 'bg-red-950 text-red-400 border-red-800';
+        else if (type === 'anr') badgeColor = 'bg-amber-950 text-amber-400 border-amber-800';
+        else if (type === 'network') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
+        else if (type === 'performance_sample') badgeColor = 'bg-purple-950 text-purple-400 border-purple-800';
+        else if (type === 'state_inspection') badgeColor = 'bg-blue-950 text-blue-400 border-blue-800';
+
+        const row = document.createElement('div');
+        row.className = `p-3 hover:bg-slate-800/40 cursor-pointer transition flex items-start space-x-3 ${selectedEvent === ev ? 'bg-slate-800/70 border-l-4 border-cyan-400' : ''}`;
+        row.onclick = () => selectEvent(ev);
+
+        row.innerHTML = `
+          <div class="text-[11px] text-slate-500 font-mono mt-0.5 whitespace-nowrap">${time}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center space-x-2 mb-1">
+              <span class="text-xs px-2 py-0.5 rounded border font-mono ${badgeColor}">${type}</span>
+              <span class="text-xs uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">${level}</span>
+              <span class="text-[10px] text-slate-500 font-mono">seq: ${ev.sequence_number || 0}</span>
+            </div>
+            <div class="text-xs text-slate-300 font-mono truncate">${JSON.stringify(ev.payload || ev)}</div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function selectEvent(ev) {
+      selectedEvent = ev;
+      const type = ev.message_type || ev.eventType || ev.type || 'unknown';
+      document.getElementById('inspect-type-badge').textContent = type;
+
+      const inspector = document.getElementById('inspector-content');
+      
+      if (type === 'network' || (ev.payload && ev.payload.url)) {
+        const p = ev.payload || ev;
+        inspector.innerHTML = `
+          <div class="space-y-4">
+            <div class="bg-slate-900 p-3 rounded border border-slate-800">
+              <div class="text-cyan-400 font-bold mb-2">Network Request Details</div>
+              <div class="grid grid-cols-2 gap-2 text-slate-300">
+                <div><span class="text-slate-500">Method:</span> ${p.method || 'GET'}</div>
+                <div><span class="text-slate-500">Status:</span> <span class="${(p.status_code || 200) >= 400 ? 'text-red-400' : 'text-emerald-400'}">${p.status_code || 200}</span></div>
+                <div class="col-span-2 truncate"><span class="text-slate-500">URL:</span> ${p.url || ''}</div>
+                <div><span class="text-slate-500">Duration:</span> ${p.duration_ms || 0} ms</div>
+                <div><span class="text-slate-500">Size:</span> ${p.response_size || 0} bytes</div>
+              </div>
+            </div>
+            <div>
+              <div class="text-slate-400 font-semibold mb-1">Request Headers</div>
+              <pre class="bg-slate-900 p-3 rounded border border-slate-800 overflow-x-auto">${JSON.stringify(p.request_headers || {}, null, 2)}</pre>
+            </div>
+            <div>
+              <div class="text-slate-400 font-semibold mb-1">Response Body / Data</div>
+              <pre class="bg-slate-900 p-3 rounded border border-slate-800 overflow-x-auto">${JSON.stringify(p.body || p.response || {}, null, 2)}</pre>
+            </div>
+          </div>
+        `;
+      } else {
+        inspector.innerHTML = `
+          <div class="space-y-3">
+            <div class="text-cyan-400 font-semibold">Envelope & Payload Inspection</div>
+            <pre class="bg-slate-900 p-3 rounded border border-slate-800 overflow-x-auto">${JSON.stringify(ev, null, 2)}</pre>
+          </div>
+        `;
+      }
+      renderEvents(currentSessionEvents); // re-highlight active
+    }
+
+    function toggleLiveTail() {
+      isLiveTailActive = !isLiveTailActive;
+      const statusEl = document.getElementById('live-status');
+      const btn = document.getElementById('btn-toggle-live');
+      const indicator = document.getElementById('connection-indicator');
+
+      if (isLiveTailActive) {
+        statusEl.innerHTML = '<span>● Live Tail Active</span>';
+        statusEl.className = 'text-xs text-emerald-400 flex items-center space-x-1';
+        btn.textContent = 'Pause Live';
+        btn.className = 'px-3 py-1 text-xs font-semibold rounded bg-indigo-600 hover:bg-indigo-500 text-white transition';
+        indicator.className = 'bg-cyan-500 w-3 h-3 rounded-full animate-pulse';
+        startPolling();
+      } else {
+        statusEl.innerHTML = '<span>■ Live Tail Paused</span>';
+        statusEl.className = 'text-xs text-amber-400 flex items-center space-x-1';
+        btn.textContent = 'Resume Live';
+        btn.className = 'px-3 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition';
+        indicator.className = 'bg-amber-500 w-3 h-3 rounded-full';
+        stopPolling();
+      }
+    }
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        await loadSessions();
+        const sessionId = document.getElementById('session-select').value;
+        if (sessionId) {
+          await fetchSessionEvents(sessionId);
+        }
+      }, 2500);
+    }
+
+    function stopPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+    }
+
+    function exportSession(format) {
+      const sessionId = document.getElementById('session-select').value;
+      if (!sessionId) {
+        alert('Please select a session first to export.');
+        return;
+      }
+      window.open(`/api/v1/telemetry/sessions/${sessionId}/export?format=${format}`, '_blank');
+    }
+
+    // Initial load
+    loadSessions();
+    startPolling();
+  </script>
+</body>
+</html>

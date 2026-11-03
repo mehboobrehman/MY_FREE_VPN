@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TelemetryEnvelope",
+  "description": "Versioned message envelope schema for MY_FREE_VPN Live Debug Telemetry (Phase 1)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "session_id",
+    "device_id",
+    "sequence_number",
+    "monotonic_timestamp",
+    "wall_clock_timestamp",
+    "message_type",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0.0"]
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "monotonic_timestamp": {
+      "type": "number"
+    },
+    "wall_clock_timestamp": {
+      "type": "integer"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "event",
+        "state_inspection",
+        "debugger_attach",
+        "runtime_logpoints",
+        "trigger_snapshots",
+        "heartbeat"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "event_type": { "type": "string" },
+        "data": { "type": "object" },
+        "inspection_target": { "type": "string" },
+        "logpoint_id": { "type": "string" },
+        "snapshot_trigger": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}
