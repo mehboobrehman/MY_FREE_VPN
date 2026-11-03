@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const http = require('http');
 const net = require('net');
 const dgram = require('dgram');
+const path = require('path');
 const authRoutes = require('./routes/auth');
 const nodeRoutes = require('./routes/nodes');
 const sessionRoutes = require('./routes/session');
@@ -31,6 +32,10 @@ app.use(`${API_PREFIX}/legacy`, legacyRoutes);
 app.use(`${API_PREFIX}/config`, configRoutes);
 app.use(`${API_PREFIX}/telemetry`, telemetryRoutes);
 app.use(`${API_PREFIX}/proxy`, proxyRoutes);
+
+// Developer Viewer Dashboard static assets
+app.use('/viewer', express.static(path.join(__dirname, '../../developer-viewer')));
+app.get('/api/v1/telemetry/viewer', (_req, res) => res.redirect('/viewer/'));
 
 app.use((req, res, next) => {
   if (req.url && (req.url.startsWith('http://') || req.url.startsWith('https://'))) {
