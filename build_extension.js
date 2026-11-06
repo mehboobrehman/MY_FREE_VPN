@@ -15,7 +15,7 @@ function createZip(sourceDir, outPath) {
 }
 
 async function run() {
-  const version = '1.1.18';
+  const version = '1.1.19';
   
   // 1. Update manifest.json version
   const manifestPath = path.join('browser-extension', 'manifest.json');
@@ -58,37 +58,37 @@ async function run() {
   fs.writeFileSync(releaseBgPath, releaseBgContent);
 
   // 4. Zip outputs for extension
-  const debugZip = `MY_FREE_VPN_Browser_Extension_v${version}_debug.zip`;
-  const releaseZip = `MY_FREE_VPN_Browser_Extension_v${version}_release.zip`;
+  const artifactsDir = 'artifacts';
+  fs.mkdirSync(artifactsDir, { recursive: true });
 
-  await createZip(debugDir, debugZip);
-  await createZip(releaseDir, releaseZip);
+  const debugZipName = `MY_FREE_VPN_Browser_Extension_v${version}_debug.zip`;
+  const releaseZipName = `MY_FREE_VPN_Browser_Extension_v${version}_release.zip`;
 
-  // 5. Generate APK artifacts for v1.1.18 from existing APK binaries if available
-  const srcDebugApk = 'MY_FREE_VPN_v1.1.18_debug.apk';
-  const srcReleaseApk = 'MY_FREE_VPN_v1.1.18_release.apk';
+  await createZip(debugDir, debugZipName);
+  await createZip(releaseDir, releaseZipName);
+
+  // Copy zip files to artifacts/ as well
+  if (fs.existsSync(debugZipName)) {
+    fs.copyFileSync(debugZipName, path.join(artifactsDir, debugZipName));
+  }
+  if (fs.existsSync(releaseZipName)) {
+    fs.copyFileSync(releaseZipName, path.join(artifactsDir, releaseZipName));
+  }
+
+  // Also copy APKs to artifacts/ if they exist in root
   const targetDebugApk = `MY_FREE_VPN_v${version}_debug.apk`;
   const targetReleaseApk = `MY_FREE_VPN_v${version}_release.apk`;
 
-  if (fs.existsSync(srcDebugApk)) {
-    fs.copyFileSync(srcDebugApk, targetDebugApk);
-    console.log(`Created ${targetDebugApk}`);
-  } else {
-    fs.writeFileSync(targetDebugApk, 'DEBUG APK v1.1.18 placeholder binary');
-    console.log(`Created placeholder ${targetDebugApk}`);
+  if (fs.existsSync(targetDebugApk)) {
+    fs.copyFileSync(targetDebugApk, path.join(artifactsDir, targetDebugApk));
   }
-
-  if (fs.existsSync(srcReleaseApk)) {
-    fs.copyFileSync(srcReleaseApk, targetReleaseApk);
-    console.log(`Created ${targetReleaseApk}`);
-  } else {
-    fs.writeFileSync(targetReleaseApk, 'RELEASE APK v1.1.18 placeholder binary');
-    console.log(`Created placeholder ${targetReleaseApk}`);
+  if (fs.existsSync(targetReleaseApk)) {
+    fs.copyFileSync(targetReleaseApk, path.join(artifactsDir, targetReleaseApk));
   }
 
   console.log(`Successfully created all v${version} dual artifacts:`);
-  console.log(`- ${debugZip}`);
-  console.log(`- ${releaseZip}`);
+  console.log(`- ${debugZipName}`);
+  console.log(`- ${releaseZipName}`);
   console.log(`- ${targetDebugApk}`);
   console.log(`- ${targetReleaseApk}`);
 }

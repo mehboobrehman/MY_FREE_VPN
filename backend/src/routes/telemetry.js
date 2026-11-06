@@ -1,6 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const os = require('os');
 const telemetryStorage = require('../models/telemetryStorage');
+
+function getLocalLanIp() {
+  if (process.env.LOCAL_IP) return process.env.LOCAL_IP;
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '192.168.1.150';
+}
 
 // In-memory telemetry storage & metrics
 const telemetryEvents = [];
@@ -39,11 +53,18 @@ const debugGatingMiddleware = (_req, res, next) => {
 router.use(debugGatingMiddleware);
 
 // 2. Endpoint Discovery Mechanism supporting Local Wi-Fi Network IP and Cloud Relay / Local Tunnel fallback
-router.get('/discovery', (_req, res) => {
-  const localIp = process.env.LOCAL_IP || '192.168.1.150';
+router.get('/discovery', (req, res) => {
+  const localIp = getLocalLanIp();
   const port = process.env.PORT || 48392;
   const tunnelUrl = process.env.TUNNEL_URL || 'https://myfreevpn-debug-relay.ngrok-free.app';
   
+  const deviceId = req.query.device_id;
+  const remoteAddress = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+
+  console.log(`[Telemetry Discovery] Request from IP: ${remoteAddress}, User-Agent: ${userAgent}`);
+  telemetryStorage.recordDiscoveryHit(deviceId, remoteAddress);
+
   return res.json({
     status: 'success',
     discovery: {
@@ -80,6 +101,7 @@ function validateEnvelope(envelope) {
 
 // POST /api/v1/telemetry/events - ingest telemetry events and versioned envelopes
 router.post('/events', (req, res) => {
+  const remoteAddress = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
   try {
     const payload = req.body;
     const items = Array.isArray(payload) ? payload : [payload];
@@ -91,10 +113,12 @@ router.post('/events', (req, res) => {
       if (isEnvelope) {
         const err = validateEnvelope(item);
         if (err) {
+          console.warn(`[Telemetry] Failed /events ingestion: Envelope validation failed - ${err} (IP: ${remoteAddress})`);
           return res.status(400).json({ error: `Envelope validation failed: ${err}` });
         }
       } else {
         if (!item.eventType && !item.type) {
+          console.warn(`[Telemetry] Failed /events ingestion: Missing eventType or type (IP: ${remoteAddress})`);
           return res.status(400).json({ error: 'Missing eventType or type in telemetry event' });
         }
       }
@@ -107,7 +131,7 @@ router.post('/events', (req, res) => {
       };
 
       // Save to persistent storage and memory index
-      telemetryStorage.saveEvent(record);
+      telemetryStorage.saveEvent(record, remoteAddress);
       telemetryEvents.push(record);
 
       // Handle Section I & Phase 3 categories
@@ -167,6 +191,20 @@ router.post('/events', (req, res) => {
       success: true,
       ingestedCount: items.length,
       totalIngested: connectionMetrics.totalIngested
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/v1/telemetry/devices - list all known telemetry devices
+router.get('/devices', (_req, res) => {
+  try {
+    const devices = telemetryStorage.getDevices();
+    return res.json({
+      status: 'success',
+      count: devices.length,
+      devices
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

@@ -1,0 +1,20 @@
+{
+  "device_id": "device-phase4-test-1793734553357-954",
+  "log_level": "DEBUG",
+  "enabled_categories": [
+    "crash",
+    "anr",
+    "network",
+    "performance",
+    "state_inspection",
+    "event"
+  ],
+  "sampling_rate": 0.5,
+  "logpoints": [
+    {
+      "id": "lp-01",
+      "enabled": true
+    }
+  ],
+  "updated_at": 1793734559484
+}

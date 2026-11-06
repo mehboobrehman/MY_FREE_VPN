@@ -3,8 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:my_free_vpn/config/version_config.dart';
+import 'package:my_free_vpn/services/device_agent_core.dart';
+import 'package:my_free_vpn/services/telemetry_collectors.dart';
 import 'package:my_free_vpn/services/vpn_service.dart';
 import 'package:my_free_vpn/widgets/debug_screen.dart';
+import 'package:my_free_vpn/widgets/telemetry_debug_overlay.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -27,6 +30,11 @@ void main() async {
     });
   }
 
+  if (kDebugMode) {
+    await DeviceAgentCore.initialize();
+    await TelemetryCollectors.initialize();
+  }
+
   runApp(const MyApp());
 }
 
@@ -47,6 +55,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0F172A),
         cardColor: const Color(0xFF1E293B),
       ),
+      builder: (context, child) => TelemetryDebugOverlay(child: child!),
       home: const MainNavigationScreen(),
     );
   }

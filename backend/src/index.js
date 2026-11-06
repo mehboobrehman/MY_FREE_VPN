@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 });
 
 // Health check
-app.get(`${API_PREFIX}/status`, (_req, res) => {
+app.get([`${API_PREFIX}/status`, `${API_PREFIX}/health`], (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: Date.now()

@@ -23,6 +23,7 @@ class DeviceAgentCore {
   static int _clockOffsetMs = 0;
   static bool _isSyncing = false;
   static int _retryAttempt = 0;
+  static String? manualIpOverride;
 
   static AgentConnectionState get currentState => _currentState;
   static Stream<AgentConnectionState> get stateStream => _stateController.stream;
@@ -61,6 +62,13 @@ class DeviceAgentCore {
     }
   }
 
+  static Future<void> updateManualIp(String? ip) async {
+    manualIpOverride = ip;
+    _retryAttempt = 0;
+    AgentLogger.i('DeviceAgentCore', 'Manual IP updated to: $ip. Re-triggering discovery...');
+    await discoverEndpoint();
+  }
+
   static Future<void> _ensureQueueTable() async {
     try {
       final db = await AgentLogger.database;
@@ -77,9 +85,16 @@ class DeviceAgentCore {
     }
   }
 
-  /// Endpoint Discovery supporting Local Wi-Fi and Cloud Relay fallback.
+  /// Endpoint Discovery supporting Manual Override, Local Wi-Fi and Cloud Relay fallback.
   static Future<String?> discoverEndpoint() async {
     if (!kDebugMode) return null;
+
+    if (manualIpOverride != null && manualIpOverride!.isNotEmpty) {
+      _discoveredEndpoint = 'http://${manualIpOverride!}:48392/api/v1/telemetry';
+      _updateState(AgentConnectionState.connected);
+      AgentLogger.i('DeviceAgentCore', 'Using Manual IP Override: $_discoveredEndpoint');
+      return _discoveredEndpoint;
+    }
 
     final localIp = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
     final port = 48392;

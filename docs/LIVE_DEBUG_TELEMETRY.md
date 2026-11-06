@@ -68,19 +68,41 @@ The **MY_FREE_VPN Live Debug Telemetry** system is an enterprise-grade, zero-PII
 
 ## 4. Quickstart Guide
 
-### Step 1: Start Backend Collector
+### Quickstart: Single-Command Live Debug Telemetry
+To start the backend, set up ADB, launch the viewer, install the debug app, and verify telemetry all in one go, use the following command:
 ```bash
-cd backend
-npm install
-npm start
+npm run debug
 ```
-The backend starts on port `3000` (or `48392`).
+This command executes the full Live Debug pipeline:
+1.  Automatically starts the Telemetry Server (`backend/src/index.js` on port `48392`) if not already running.
+2.  Initializes developer tooling, detects connected ADB devices, and establishes ADB port forwarding (`adb forward tcp:48392 tcp:48392`).
+3.  Launches the Developer Viewer Dashboard (`http://localhost:48392/viewer`).
+4.  Installs and launches the debug app on the connected ADB device/emulator (using `artifacts/MY_FREE_VPN_v1.1.18_debug.apk` or `client/build/app/outputs/flutter-apk/app-debug.apk`) and sends a test telemetry verification payload.
 
-### Step 2: Run Developer Tooling CLI
-Use the automated CLI helper to check prerequisites, setup ADB forwarding, discover endpoints, and launch viewer:
+Alternatively, you can run the `live_debug.js` tool directly:
 ```bash
-node tools/live_debug.js --open-viewer
+node tools/live_debug.js --all
 ```
+
+### Step 3: Ingest Test Telemetry (Manual Verification)
+If you need to manually ingest a test telemetry event after the full pipeline is running, use:
+```bash
+curl -X POST http://localhost:48392/api/v1/telemetry/events \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "schema_version": "1.0.0",
+    "session_id": "session-test-01",
+    "device_id": "device-test-01",
+    "sequence_number": 1,
+    "monotonic_timestamp": 123.45,
+    "wall_clock_timestamp": 1710000000000,
+    "message_type": "vpn_connect",
+    "payload": {
+      "event_type": "vpn_connect",
+      "nodeId": "node-sg-01",
+      "bytesTransferred": 2048
+    }
+  }'
 
 ### Step 3: Ingest Test Telemetry
 Send a sample telemetry envelope:
