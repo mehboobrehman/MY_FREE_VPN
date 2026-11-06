@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ghPath = 'C:\\Users\\mehboob.rehman\\Downloads\\gh_2.102.0_windows_386\\bin\\gh.exe';
-const version = '1.1.19';
+const version = '1.1.20';
 const tagName = `v${version}`;
 
 function run(cmd) {

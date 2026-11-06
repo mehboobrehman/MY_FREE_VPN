@@ -3,24 +3,24 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const filesToUpdate = {
-  'version.json': { old: '1.1.18', new: '1.1.19' },
-  'client/pubspec.yaml': { old: '1.1.18+18', new: '1.1.19+19' },
-  'client/lib/config/version_config.dart': [{ old: "version = '1.1.18'", new: "version = '1.1.19'" }, { old: 'buildNumber = 18', new: 'buildNumber = 19' }],
-  'browser-extension/manifest.json': { old: '1.1.18', new: '1.1.19' },
-  'browser-extension/package.json': { old: '1.1.18', new: '1.1.19' },
-  'backend/package.json': { old: '1.1.18', new: '1.1.19' },
-  'backend/package-lock.json': { old: '1.1.18', new: '1.1.19' },
-  'developer-viewer/index.html': { old: '1.1.18', new: '1.1.19' },
-  'build_extension.js': { old: '1.1.18', new: '1.1.19' },
-  'perform_release.js': { old: "'1.1.18'", new: "'1.1.19'" },
-  'copy_apks.js': { old: "'1.1.18'", new: "'1.1.19'" },
-  'setup_artifacts.js': { old: "'1.1.18'", new: "'1.1.19'" },
-  'upload_release.js': { old: "'1.1.18'", new: "'1.1.19'" },
+  'version.json': { old: '1.1.19', new: '1.1.20' },
+  'client/pubspec.yaml': { old: '1.1.19+19', new: '1.1.20+20' },
+  'client/lib/config/version_config.dart': [{ old: "version = '1.1.19'", new: "version = '1.1.20'" }, { old: 'buildNumber = 19', new: 'buildNumber = 20' }],
+  'browser-extension/manifest.json': { old: '1.1.19', new: '1.1.20' },
+  'browser-extension/package.json': { old: '1.1.19', new: '1.1.20' },
+  'backend/package.json': { old: '1.1.19', new: '1.1.20' },
+  'backend/package-lock.json': { old: '1.1.19', new: '1.1.20' },
+  'developer-viewer/index.html': { old: '1.1.19', new: '1.1.20' },
+  'build_extension.js': { old: '1.1.19', new: '1.1.20' },
+  'perform_release.js': { old: "'1.1.19'", new: "'1.1.20'" },
+  'copy_apks.js': { old: "'1.1.19'", new: "'1.1.20'" },
+  'setup_artifacts.js': { old: "'1.1.19'", new: "'1.1.20'" },
+  'upload_release.js': { old: "'1.1.19'", new: "'1.1.20'" },
   'bump_and_build.js': [
-    { old: "oldVersion = '1.1.17'", new: "oldVersion = '1.1.18'" },
-    { old: "newVersion = '1.1.18'", new: "newVersion = '1.1.19'" },
-    { old: 'oldBuild = 17', new: 'oldBuild = 18' },
-    { old: 'newBuild = 18', new: 'newBuild = 19' }
+    { old: "oldVersion = '1.1.18'", new: "oldVersion = '1.1.19'" },
+    { old: "newVersion = '1.1.19'", new: "newVersion = '1.1.20'" },
+    { old: 'oldBuild = 18', new: 'oldBuild = 19' },
+    { old: 'newBuild = 19', new: 'newBuild = 20' }
   ]
 };
 
