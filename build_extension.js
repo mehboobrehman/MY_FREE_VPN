@@ -15,7 +15,9 @@ function createZip(sourceDir, outPath) {
 }
 
 async function run() {
-  const version = '1.1.21';
+  const packageJsonPath = path.join(__dirname, 'browser-extension', 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const version = packageJson.version;
   
   // 1. Update manifest.json version
   const manifestPath = path.join('browser-extension', 'manifest.json');

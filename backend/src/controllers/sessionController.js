@@ -1,4 +1,5 @@
 const { vpnNodes, registeredDevices, activeSessions } = require('../models/store');
+const { provisionPeer } = require('./nodeController');
 const { v4: uuidv4 } = require('uuid');
 
 async function connectSession(req, res) {
@@ -11,13 +12,15 @@ async function connectSession(req, res) {
     });
   }
 
-  // Verify device is registered
-  if (!registeredDevices.has(device_uuid)) {
+  // Verify device is registered and retrieve public_key
+  const device = registeredDevices.get(device_uuid);
+  if (!device) {
     return res.status(400).json({
       error: 'UNREGISTERED_DEVICE',
       message: 'This device is not registered. Please register first.'
     });
   }
+  const public_key = device.public_key;
 
   // Verify node exists
   const node = vpnNodes.get(node_id);
@@ -28,9 +31,18 @@ async function connectSession(req, res) {
     });
   }
 
-  // Simulate internal IP allocation (usually 10.x.x.x)
-  // For a real implementation, we would query the node or an IPAM service.
-  const client_ip = `10.8.0.${Math.floor(Math.random() * 254) + 2}/32`;
+  // Provision peer and assign deterministic/managed IPAM IP (10.8.0.x)
+  let provisionResult;
+  try {
+    provisionResult = provisionPeer(node_id, device_uuid, public_key);
+  } catch (err) {
+    return res.status(400).json({
+      error: 'PROVISION_FAILED',
+      message: err.message || 'Failed to provision peer.'
+    });
+  }
+
+  const client_ip = `${provisionResult.client_ip}/32`;
   const session_token = uuidv4();
 
   const config = {
