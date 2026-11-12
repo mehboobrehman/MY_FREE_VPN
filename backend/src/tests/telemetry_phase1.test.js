@@ -4,6 +4,7 @@ const supertest = require('supertest');
 const fs = require('fs');
 const path = require('path');
 const app = require('../index');
+const ADMIN_TOKEN = 'freevpn_debug_token_xyz';
 
 test('Phase 1 Live Telemetry: Contract Schema Validation', () => {
   const schemaPath = path.join(__dirname, '../../../contracts/telemetry_envelope.json');
@@ -114,19 +115,27 @@ test('Phase 1 Live Telemetry: Section I Extensions (I1-I4)', async () => {
   assert.strictEqual(res.body.ingestedCount, 4);
 
   // Verify retrieval of extensions
-  const ext1 = await request.get('/api/v1/telemetry/extensions/state_inspection');
+  const ext1 = await request
+    .get('/api/v1/telemetry/extensions/state_inspection')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(ext1.status, 200);
   assert.strictEqual(ext1.body.count > 0, true);
 
-  const ext2 = await request.get('/api/v1/telemetry/extensions/debugger_attach');
+  const ext2 = await request
+    .get('/api/v1/telemetry/extensions/debugger_attach')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(ext2.status, 200);
   assert.strictEqual(ext2.body.count > 0, true);
 
-  const ext3 = await request.get('/api/v1/telemetry/extensions/runtime_logpoints');
+  const ext3 = await request
+    .get('/api/v1/telemetry/extensions/runtime_logpoints')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(ext3.status, 200);
   assert.strictEqual(ext3.body.count > 0, true);
 
-  const ext4 = await request.get('/api/v1/telemetry/extensions/trigger_snapshots');
+  const ext4 = await request
+    .get('/api/v1/telemetry/extensions/trigger_snapshots')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(ext4.status, 200);
   assert.strictEqual(ext4.body.count > 0, true);
 });

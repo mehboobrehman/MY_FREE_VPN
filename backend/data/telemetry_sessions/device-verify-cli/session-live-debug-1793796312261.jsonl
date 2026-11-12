@@ -1,1 +1,0 @@
-{"schema_version":"1.0.0","session_id":"session-live-debug-1793796312261","device_id":"device-verify-cli","sequence_number":1,"monotonic_timestamp":100,"wall_clock_timestamp":1793796312261,"message_type":"vpn_connect","payload":{"event_type":"vpn_connect","nodeId":"node-live-debug-verifier","status":"pipeline_verified","source":"live_debug_cli"},"receivedAt":1793796312263}

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const supertest = require('supertest');
 const app = require('../index');
+const ADMIN_TOKEN = 'freevpn_debug_token_xyz';
 
 test('Phase 3 Telemetry: Remote Host Commands Dispatch, Poll and Ack', async () => {
   const request = supertest(app);
@@ -9,6 +10,7 @@ test('Phase 3 Telemetry: Remote Host Commands Dispatch, Poll and Ack', async () 
   // 1. Dispatch remote command
   const dispatchRes = await request
     .post('/api/v1/telemetry/commands')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
     .send({
       action: 'change_log_level',
       params: { level: 'DEBUG' },
@@ -99,19 +101,27 @@ test('Phase 3 Telemetry: Ingestion of Crash, ANR, Network and Performance Catego
   assert.strictEqual(ingestRes.body.ingestedCount, 4);
 
   // Verify retrieval via extension / category endpoints
-  const crashExt = await request.get('/api/v1/telemetry/extensions/crash');
+  const crashExt = await request
+    .get('/api/v1/telemetry/extensions/crash')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(crashExt.status, 200);
   assert.strictEqual(crashExt.body.count > 0, true);
 
-  const anrExt = await request.get('/api/v1/telemetry/extensions/anr');
+  const anrExt = await request
+    .get('/api/v1/telemetry/extensions/anr')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(anrExt.status, 200);
   assert.strictEqual(anrExt.body.count > 0, true);
 
-  const netExt = await request.get('/api/v1/telemetry/extensions/network');
+  const netExt = await request
+    .get('/api/v1/telemetry/extensions/network')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(netExt.status, 200);
   assert.strictEqual(netExt.body.count > 0, true);
 
-  const perfExt = await request.get('/api/v1/telemetry/extensions/performance');
+  const perfExt = await request
+    .get('/api/v1/telemetry/extensions/performance')
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(perfExt.status, 200);
   assert.strictEqual(perfExt.body.count > 0, true);
 });

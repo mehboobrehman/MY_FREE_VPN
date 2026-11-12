@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const supertest = require('supertest');
 const app = require('../index');
+const ADMIN_TOKEN = 'freevpn_debug_token_xyz';
 
 test('Phase 4 Telemetry: Storage, Replay, Export & Per-Device Config', async () => {
   const request = supertest(app);
@@ -66,7 +67,9 @@ test('Phase 4 Telemetry: Storage, Replay, Export & Per-Device Config', async () 
   assert.strictEqual(ingestRes.body.ingestedCount, 3);
 
   // 2. Test GET /api/v1/telemetry/sessions (listing sessions with metadata)
-  const sessionsRes = await request.get(`/api/v1/telemetry/sessions?device_id=${deviceId}`);
+  const sessionsRes = await request
+    .get(`/api/v1/telemetry/sessions?device_id=${deviceId}`)
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(sessionsRes.status, 200);
   assert.strictEqual(sessionsRes.body.status, 'success');
   assert.ok(sessionsRes.body.sessions.length > 0);
@@ -79,7 +82,9 @@ test('Phase 4 Telemetry: Storage, Replay, Export & Per-Device Config', async () 
   assert.ok(targetSession.event_types.crash);
 
   // 3. Test GET /api/v1/telemetry/sessions/:id (retrieve session events with filters)
-  const sessionEventsRes = await request.get(`/api/v1/telemetry/sessions/${sessionId}`);
+  const sessionEventsRes = await request
+    .get(`/api/v1/telemetry/sessions/${sessionId}`)
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(sessionEventsRes.status, 200);
   assert.strictEqual(sessionEventsRes.body.status, 'success');
   assert.strictEqual(sessionEventsRes.body.session_id, sessionId);
@@ -88,20 +93,26 @@ test('Phase 4 Telemetry: Storage, Replay, Export & Per-Device Config', async () 
   assert.strictEqual(sessionEventsRes.body.events.length, 3);
 
   // Test filtering by type
-  const filteredEventsRes = await request.get(`/api/v1/telemetry/sessions/${sessionId}?type=network`);
+  const filteredEventsRes = await request
+    .get(`/api/v1/telemetry/sessions/${sessionId}?type=network`)
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(filteredEventsRes.status, 200);
   assert.strictEqual(filteredEventsRes.body.events.length, 1);
   assert.strictEqual(filteredEventsRes.body.events[0].message_type, 'network');
 
   // 4. Test GET /api/v1/telemetry/sessions/:id/export (JSON format)
-  const exportJsonRes = await request.get(`/api/v1/telemetry/sessions/${sessionId}/export?format=json`);
+  const exportJsonRes = await request
+    .get(`/api/v1/telemetry/sessions/${sessionId}/export?format=json`)
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(exportJsonRes.status, 200);
   assert.ok(exportJsonRes.body.session_id);
   assert.ok(exportJsonRes.body.events);
   assert.strictEqual(exportJsonRes.body.events.length, 3);
 
   // 5. Test GET /api/v1/telemetry/sessions/:id/export (HAR format)
-  const exportHarRes = await request.get(`/api/v1/telemetry/sessions/${sessionId}/export?format=har`);
+  const exportHarRes = await request
+    .get(`/api/v1/telemetry/sessions/${sessionId}/export?format=har`)
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
   assert.strictEqual(exportHarRes.status, 200);
   assert.ok(exportHarRes.body.log);
   assert.strictEqual(exportHarRes.body.log.version, '1.2');
@@ -119,6 +130,7 @@ test('Phase 4 Telemetry: Storage, Replay, Export & Per-Device Config', async () 
   // 7. Test POST /api/v1/telemetry/config/:deviceId (set per-device config)
   const setConfigRes = await request
     .post(`/api/v1/telemetry/config/${deviceId}`)
+    .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
     .send({
       log_level: 'DEBUG',
       sampling_rate: 0.5,

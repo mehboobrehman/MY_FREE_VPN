@@ -1,0 +1,3 @@
+dir: cannot access '/s': No such file or directory
+dir: cannot access '/b': No such file or directory
+dir: cannot access '%PROGRAMFILES(X86)%\Inno Setup 6\ISCC.exe': No such file or directory

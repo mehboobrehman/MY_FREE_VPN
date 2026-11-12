@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const version = '1.1.20';
+const version = '1.1.21';
 const artifactsDir = 'artifacts';
 fs.mkdirSync(artifactsDir, { recursive: true });
 

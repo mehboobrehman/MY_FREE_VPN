@@ -1,0 +1,21 @@
+{
+  "name": "my-free-vpn",
+  "version": "1.0.0",
+  "description": "A free VPN for android and windows for lifetime with zero setup.",
+  "main": "backend/src/index.js",
+  "scripts": {
+    "debug": "node tools/live_debug.js --all --open-viewer",
+    "start": "node backend/src/index.js",
+    "test": "npm --prefix backend test"
+  },
+  "keywords": [
+    "vpn",
+    "free",
+    "android",
+    "windows",
+    "lifetime",
+    "zero setup"
+  ],
+  "author": "Mehboob-ur-Rehman",
+  "license": "ISC"
+}

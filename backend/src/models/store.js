@@ -2,8 +2,27 @@
 // In production, this would be backed by ephemeral Redis or in-memory DB with zero disk persistence.
 
 const registeredDevices = new Map(); // device_uuid -> { public_key, platform, app_version, registered_at }
+const activeChallenges = new Map(); // nonce -> { device_uuid, expires_at }
 const vpnNodes = new Map(); // node_id -> node object
 const activeSessions = new Map(); // session_token -> session object
+const allocatedIps = new Set(); // Set of allocated IPs (e.g., '10.8.0.2')
+const nodePeers = new Map(); // node_id -> Map(client_public_key -> { client_ip, device_uuid, added_at })
+
+// IPAM helper
+function allocateIp() {
+  for (let i = 2; i < 255; i++) {
+    const ip = `10.8.0.${i}`;
+    if (!allocatedIps.has(ip)) {
+      allocatedIps.add(ip);
+      return ip;
+    }
+  }
+  throw new Error('No more IPs available');
+}
+
+function releaseIp(ip) {
+  allocatedIps.delete(ip);
+}
 
 // Seed initial default nodes from fleet configuration with correct backend proxy port
 const defaultNodes = [
@@ -171,6 +190,11 @@ defaultNodes.forEach(node => {
 
 module.exports = {
   registeredDevices,
+  activeChallenges,
   vpnNodes,
-  activeSessions
+  activeSessions,
+  allocatedIps,
+  nodePeers,
+  allocateIp,
+  releaseIp
 };

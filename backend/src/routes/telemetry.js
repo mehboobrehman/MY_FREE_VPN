@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const os = require('os');
+const adminAuthMiddleware = require('../middleware/adminAuth');
 const telemetryStorage = require('../models/telemetryStorage');
 
 function getLocalLanIp() {
@@ -198,7 +199,7 @@ router.post('/events', (req, res) => {
 });
 
 // GET /api/v1/telemetry/devices - list all known telemetry devices
-router.get('/devices', (_req, res) => {
+router.get('/devices', adminAuthMiddleware, (_req, res) => {
   try {
     const devices = telemetryStorage.getDevices();
     return res.json({
@@ -212,7 +213,7 @@ router.get('/devices', (_req, res) => {
 });
 
 // GET /api/v1/telemetry/metrics - inspect incoming connection metrics
-router.get('/metrics', (_req, res) => {
+router.get('/metrics', adminAuthMiddleware, (_req, res) => {
   return res.json({
     status: 'success',
     metrics: connectionMetrics,
@@ -232,7 +233,7 @@ router.get('/metrics', (_req, res) => {
 });
 
 // GET /api/v1/telemetry/events - view recent telemetry events
-router.get('/events', (req, res) => {
+router.get('/events', adminAuthMiddleware, (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 50;
   const typeFilter = req.query.type;
   
@@ -250,7 +251,7 @@ router.get('/events', (req, res) => {
 // --- Phase 4 Operational & Session Replay Endpoints ---
 
 // GET /api/v1/telemetry/sessions - List sessions with metadata
-router.get('/sessions', (req, res) => {
+router.get('/sessions', adminAuthMiddleware, (req, res) => {
   try {
     const deviceId = req.query.device_id;
     const sessions = telemetryStorage.getSessions({ device_id: deviceId });
@@ -265,7 +266,7 @@ router.get('/sessions', (req, res) => {
 });
 
 // GET /api/v1/telemetry/sessions/:id - Retrieve session events
-router.get('/sessions/:id', (req, res) => {
+router.get('/sessions/:id', adminAuthMiddleware, (req, res) => {
   try {
     const sessionId = req.params.id;
     const result = telemetryStorage.getSessionEvents(sessionId, req.query);
@@ -282,7 +283,7 @@ router.get('/sessions/:id', (req, res) => {
 });
 
 // GET /api/v1/telemetry/sessions/:id/export - Export session logs in open JSON or HAR format
-router.get('/sessions/:id/export', (req, res) => {
+router.get('/sessions/:id/export', adminAuthMiddleware, (req, res) => {
   try {
     const sessionId = req.params.id;
     const format = req.query.format || 'json';
@@ -323,7 +324,7 @@ router.get('/config/:deviceId', (req, res) => {
 });
 
 // POST /api/v1/telemetry/config/:deviceId - Set configuration per device
-router.post('/config/:deviceId', (req, res) => {
+router.post('/config/:deviceId', adminAuthMiddleware, (req, res) => {
   try {
     const deviceId = req.params.deviceId;
     const updated = telemetryStorage.setConfig(deviceId, req.body);
@@ -338,7 +339,7 @@ router.post('/config/:deviceId', (req, res) => {
 });
 
 // GET /api/v1/telemetry/extensions/:type - inspect extension & telemetry category data
-router.get('/extensions/:type', (req, res) => {
+router.get('/extensions/:type', adminAuthMiddleware, (req, res) => {
   const extType = req.params.type;
   let data = [];
   if (extType === 'state_inspection') data = extensionDataStore.stateInspections;
@@ -364,7 +365,7 @@ router.get('/extensions/:type', (req, res) => {
 const allowListedActions = ['change_log_level', 'change_sampling', 'toggle_categories', 'request_snapshot'];
 
 // POST /api/v1/telemetry/commands - dispatch a remote command to device agent
-router.post('/commands', (req, res) => {
+router.post('/commands', adminAuthMiddleware, (req, res) => {
   try {
     const { action, params, device_id } = req.body;
     if (!action || !allowListedActions.includes(action)) {

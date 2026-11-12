@@ -1,13 +1,13 @@
 <div align="center">
 
-# 🛡️ MY_FREE_VPN
+# 🛡️ MY_FREE_VPN (Development Roadmap Phase)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Release v1.1.3](https://img.shields.io/badge/Release-v1.1.3-brightgreen.svg)](https://github.com/mehboobrehman/MY_FREE_VPN/releases/tag/v1.1.3)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Browser-orange.svg)](https://github.com/mehboobrehman/MY_FREE_VPN/releases)
-[![Protocol: WireGuard](https://img.shields.io/badge/Protocol-WireGuard-purple.svg)](https://www.wireguard.com/)
+[![Protocol: WireGuard (Planned)](https://img.shields.io/badge/Protocol-WireGuard-purple.svg)](https://www.wireguard.com/)
 
-**Lifetime Free VPN for Android & Windows with Zero Setup and Zero-Logs Architecture.**
+**Lifetime Free VPN for Android & Windows. Project currently in Development Roadmap Phase (Phase 1: WireGuard Implementation).**
 
 [Key Features](#-key-features) • [Architecture & Security](#️-architecture--security) • [Installation & User Guide](#-installation--user-guide) • [Developer Guide & Backend](#-developer-guide--backend-services) • [Release Artifacts](#-release-artifacts-v111)
 
@@ -17,19 +17,19 @@
 
 ## 🌟 Overview & Key Features
 
-**MY_FREE_VPN** is engineered to provide unrestricted, high-speed, and secure internet access without subscriptions, accounts, or privacy compromises.
+**MY_FREE_VPN** is engineered to provide unrestricted, high-speed, and secure internet access without subscriptions or accounts.
 
-*   🚀 **Lifetime Free & Unlimited**: Zero subscription fees, zero bandwidth caps, and no throttling. Enjoy uncompromised high-speed tunneling worldwide.
+*   🚀 **Lifetime Free & Unlimited**: Zero subscription fees, zero bandwidth caps, and no throttling. (Note: Speed and availability depend on node capacity).
 *   ⚡ **Zero Setup & Zero PII**: No email registration, no passwords, and no KYC. Instant connection powered by cryptographic device authentication.
-*   🔒 **Strict No-Logs & RAM-Only Nodes**: Exit nodes operate entirely in RAM (`tmpfs`). Zero persistent storage of traffic metadata, ensuring complete user anonymity.
-*   🌍 **Smart DNS & Streaming Unblocking**: Optimized multi-hop routing designed to bypass geo-restrictions and stream seamlessly on Netflix, Hulu, BBC iPlayer, Disney+, and Prime Video.
-*   📱 **Multi-Platform Native Support**: Seamless clients built for Android, Windows, and Browser Extensions.
+*   🔒 **Target: Zero-Logs & RAM-Only Nodes**: Roadmap goal for exit nodes to operate entirely in RAM (`tmpfs`). Zero persistent storage of traffic metadata is our architectural target for complete user anonymity.
+*   🌍 **Smart DNS & Streaming Unblocking (Roadmap)**: Planned optimized multi-hop routing designed to bypass geo-restrictions and stream on platforms like Netflix, Hulu, BBC iPlayer, Disney+, and Prime Video.
+*   📱 **Multi-Platform Native Support**: Seamless clients being built for Android, Windows, and Browser Extensions.
 
 ---
 
-## 🏗️ Architecture & Security
+## 🏗️ Architecture & Security (Target Implementation)
 
-MY_FREE_VPN utilizes industry-standard cryptographic protocols to ensure uncompromising security and speed:
+MY_FREE_VPN is moving towards utilizing industry-standard cryptographic protocols to ensure uncompromising security and speed:
 
 ```
 +-----------------------------------------------------------------------------+
@@ -42,19 +42,19 @@ MY_FREE_VPN utilizes industry-standard cryptographic protocols to ensure uncompr
 +-----------------------------------------------------------------------------+
 |                        BACKEND AUTH & NODE ORCHESTRATOR                     |
 |  - Validates Cryptographic Signature                                        |
-|  - Assigns Optimal RAM-Only Exit Node                                       |
+|  - Assigns Optimal RAM-Only Exit Node (Planned)                             |
 +-----------------------------------------------------------------------------+
                                        │
-                                       ▼ (WireGuard UDP Tunnel)
+                                       ▼ (WireGuard UDP Tunnel - Phase 1)
 +-----------------------------------------------------------------------------+
-|                        RAM-ONLY EXIT NODE (tmpfs)                           |
+|                        RAM-ONLY EXIT NODE (tmpfs) - Planned                |
 |  - ChaCha20-Poly1305 Encryption                                             |
-|  - /dev/null Log Redirection (Zero PII / Zero Storage)                      |
+|  - /dev/null Log Redirection (Zero PII / Zero Storage Goal)                  |
 +-----------------------------------------------------------------------------+
 ```
 
-*   **WireGuard Protocol**: Powered by state-of-the-art cryptography (ChaCha20 for symmetry encryption, Curve25519 for key exchange). Offers superior performance, faster connection times, and significantly lower battery consumption compared to OpenVPN or IPsec.
-*   **Device UUID Cryptographic Key Binding**: Instead of passwords or emails, the client generates a local private/public key pair. The Device UUID is cryptographically signed and verified by the backend registration service, preventing spoofing while keeping users completely anonymous.
+*   **WireGuard Protocol (Phase 1)**: Powered by state-of-the-art cryptography (ChaCha20 for symmetry encryption, Curve25519 for key exchange). Aims to offer superior performance and lower battery consumption.
+*   **Device UUID Cryptographic Key Binding**: Instead of passwords or emails, the client generates a local private/public key pair. The Device UUID is signed and verified, preventing spoofing while maintaining anonymity.
 
 ---
 

@@ -1,0 +1,48 @@
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Build artifacts and binaries
+artifacts/
+**/artifacts/
+*.apk
+*.zip
+go.zip
+dist/
+**/dist/
+browser-extension-build/
+client/artifacts/
+
+# Backend telemetry and data
+backend/data/telemetry_sessions/
+backend/data/telemetry_config/
+backend.log
+backend/npm-debug.log*
+
+# Flutter/Dart build folders
+client/flutter_sdk/
+client/build/
+client/.dart_tool/
+client/.packages
+client/.pub-cache/
+client/.pub/
+
+# Windows client build artifacts
+clientwindows/build/
+clientwindows/bin/
+clientwindows/obj/
+
+# Browser extension build artifacts
+browser-extension/node_modules/
+browser-extension/dist/
+browser-extension/build/
+
+# Misc
+*.hprof
+.DS_Store
+Thumbs.db
+*.log
+output.txt
+_ul
+gh_extracted/
+nul

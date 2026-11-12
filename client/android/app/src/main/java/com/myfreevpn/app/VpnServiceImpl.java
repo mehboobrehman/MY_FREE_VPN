@@ -8,21 +8,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.VpnService;
 import android.os.Build;
-import android.os.ParcelFileDescriptor;
-import android.util.Log;
+import com.wireguard.android.backend.Backend;
+import com.wireguard.android.backend.GoBackend;
+import com.wireguard.android.backend.Tunnel;
+import com.wireguard.config.Config;
+import com.wireguard.config.InetNetwork;
+import com.wireguard.config.Interface;
+import com.wireguard.config.Peer;
+import com.wireguard.crypto.Key;
 
-import androidx.core.app.NotificationCompat;
+import androidx.annotation.NonNull;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class VpnServiceImpl extends VpnService {
 
@@ -32,10 +31,25 @@ public class VpnServiceImpl extends VpnService {
     private static final int MAX_PACKET_SIZE = 32767;
     private static final int DEFAULT_PORT = 51820;
 
-    private ParcelFileDescriptor vpnInterface = null;
-    private DatagramSocket tunnelSocket = null;
-    private ExecutorService executorService = null;
-    private volatile boolean isRunning = false;
+    private Backend backend = null;
+    private final Tunnel tunnel = new Tunnel() {
+        @NonNull
+        @Override
+        public String getName() {
+            return "MY_FREE_VPN";
+        }
+
+        @Override
+        public void onStateChange(@NonNull State newState) {
+            Log.i(TAG, "WireGuard tunnel state changed: " + newState);
+            if (newState == State.UP) {
+                isRunning = true;
+                // showNotification("MY FREE VPN", "Protected & Connected via WireGuard");
+            } else if (newState == State.DOWN) {
+                isRunning = false;
+            }
+        }
+    };
 
     @Override
     public void onCreate() {

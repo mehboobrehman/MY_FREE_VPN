@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
-const net = require('net');
 const dgram = require('dgram');
 const path = require('path');
 const authRoutes = require('./routes/auth');
@@ -12,7 +11,7 @@ const smartDnsRoutes = require('./routes/smartdns');
 const legacyRoutes = require('./routes/legacy');
 const configRoutes = require('./routes/config');
 const telemetryRoutes = require('./routes/telemetry');
-const proxyRoutes = require('./routes/proxy');
+const adminAuthMiddleware = require('./middleware/adminAuth');
 
 const app = express();
 const PORT = process.env.PORT || 48392;
@@ -31,18 +30,10 @@ app.use(`${API_PREFIX}/smartdns`, smartDnsRoutes);
 app.use(`${API_PREFIX}/legacy`, legacyRoutes);
 app.use(`${API_PREFIX}/config`, configRoutes);
 app.use(`${API_PREFIX}/telemetry`, telemetryRoutes);
-app.use(`${API_PREFIX}/proxy`, proxyRoutes);
 
 // Developer Viewer Dashboard static assets
-app.use('/viewer', express.static(path.join(__dirname, '../../developer-viewer')));
-app.get('/api/v1/telemetry/viewer', (_req, res) => res.redirect('/viewer/'));
-
-app.use((req, res, next) => {
-  if (req.url && (req.url.startsWith('http://') || req.url.startsWith('https://'))) {
-    return proxyRoutes(req, res, next);
-  }
-  next();
-});
+app.use('/viewer', adminAuthMiddleware, express.static(path.join(__dirname, '../../developer-viewer')));
+app.get('/api/v1/telemetry/viewer', adminAuthMiddleware, (_req, res) => res.redirect('/viewer/'));
 
 // Health check
 app.get([`${API_PREFIX}/status`, `${API_PREFIX}/health`], (_req, res) => {
@@ -52,42 +43,8 @@ app.get([`${API_PREFIX}/status`, `${API_PREFIX}/health`], (_req, res) => {
   });
 });
 
-// Create HTTP Server to handle HTTP CONNECT tunneling
+// Create HTTP Server
 const server = http.createServer(app);
-
-server.on('connect', (req, clientSocket, head) => {
-  const urlParts = req.url.split(':');
-  const hostname = urlParts[0];
-  const port = parseInt(urlParts[1] || '443', 10);
-
-  if (!hostname || isNaN(port)) {
-    clientSocket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
-    clientSocket.end();
-    return;
-  }
-
-  const serverSocket = net.connect(port, hostname, () => {
-    clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-    if (head && head.length > 0) {
-      serverSocket.write(head);
-    }
-    serverSocket.pipe(clientSocket);
-    clientSocket.pipe(serverSocket);
-  });
-
-  serverSocket.on('error', (err) => {
-    console.error(`[CONNECT Proxy Error] ${hostname}:${port}:`, err.message);
-    if (!clientSocket.destroyed) {
-      clientSocket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-      clientSocket.end();
-    }
-  });
-
-  clientSocket.on('error', (err) => {
-    console.error(`[CONNECT Client Socket Error] ${hostname}:${port}:`, err.message);
-    serverSocket.destroy();
-  });
-});
 
 // UDP Server for Mobile App (WireGuard Tunnel Protocol)
 const udpServer = dgram.createSocket('udp4');
@@ -110,19 +67,19 @@ udpServer.on('message', (msg, rinfo) => {
     if (msg.length >= 8) {
       msg.copy(responseBuf, 4, 4, 8);
     }
-    console.log(`[UDP VPN] Handshake initiation received from ${rinfo.address}:${rinfo.port}, sent Handshake Response.`);
+    console.log('[UDP VPN] Handshake initiation received, sent Handshake Response.');
   } else if (msgType === 0x04) {
     // Keepalive / Transport Data (Type 4) -> Keepalive ACK
     responseBuf = Buffer.alloc(Math.max(32, msg.length));
     responseBuf[0] = 0x04;
     msg.copy(responseBuf, 4, 4, Math.min(msg.length, responseBuf.length));
-    console.log(`[UDP VPN] Keepalive received from ${rinfo.address}:${rinfo.port}, sent keepalive ACK.`);
+    console.log('[UDP VPN] Keepalive received, sent keepalive ACK.');
   } else {
     // Data packet -> Echo as transport data packet
     responseBuf = Buffer.alloc(msg.length);
     msg.copy(responseBuf);
     responseBuf[0] = 0x04;
-    console.log(`[UDP VPN] Data packet of length ${msg.length} received from ${rinfo.address}:${rinfo.port}, echoing response.`);
+    console.log(`[UDP VPN] Data packet of length ${msg.length} received, echoing response.`);
   }
 
   udpServer.send(responseBuf, rinfo.port, rinfo.address, (err) => {
@@ -144,7 +101,7 @@ try {
 
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`Backend API running on port ${PORT} with HTTP CONNECT proxy support`);
+    console.log(`Backend API running on port ${PORT}`);
   });
 }
 

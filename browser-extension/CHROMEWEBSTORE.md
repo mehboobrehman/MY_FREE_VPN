@@ -6,11 +6,11 @@ This document outlines the permissions required by the **MY_FREE_VPN** browser e
 
 ### 1. `proxy`
 **Justification:**
-This permission is essential to the core functionality of the extension. It allows the extension to modify the browser's proxy settings to securely route the user's internet traffic through our VPN infrastructure. Without this permission, the extension cannot provide the VPN service requested by the user.
+This permission is essential to the core functionality of the extension. It allows the extension to modify the browser's proxy settings to securely route the user's internet traffic through our planned VPN infrastructure (WireGuard Phase 1 implementation).
 
 ### 2. `storage`
 **Justification:**
-This permission is required to locally store user-specific configurations, session preferences, and the generated cryptographic keys used for our "zero-signup" authentication mechanism. Storing this information locally ensures that the user's experience is persistent across browser restarts without requiring account registration, while maintaining the privacy-first, zero-logs architecture of the service.
+This permission is required to locally store user-specific configurations, session preferences, and the generated cryptographic keys used for our "zero-signup" authentication mechanism. Storing this information locally ensures that the user's experience is persistent across browser restarts without requiring account registration, while maintaining our privacy-first, zero-logs architectural goal.
 
 ### 3. `alarms`
 **Justification:**
