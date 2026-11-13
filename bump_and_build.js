@@ -30,9 +30,9 @@ function copyRecursive(src, dest) {
 
 async function run() {
   const oldVersion = '1.1.19';
-  const newVersion = '1.1.21';
+  const newVersion = '1.1.22';
   const oldBuild = 20;
-  const newBuild = 21;
+  const newBuild = 22;
 
   console.log(`Bumping version from ${oldVersion} to ${newVersion}...`);
 

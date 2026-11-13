@@ -714,7 +714,10 @@ class _VpnHomeScreenState extends State<VpnHomeScreen> {
           },
         ),
       ),
-    );
+    ),
+  ],
+  ),
+);
   }
 
   Widget _buildAnalyticRow(IconData icon, String label, String value) {

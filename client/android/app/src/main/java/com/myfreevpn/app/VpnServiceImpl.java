@@ -17,7 +17,18 @@ import com.wireguard.config.Interface;
 import com.wireguard.config.Peer;
 import com.wireguard.crypto.Key;
 
+import android.os.ParcelFileDescriptor;
+import java.net.*;
+import java.io.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import androidx.annotation.NonNull;
+import android.util.Log;
+import androidx.core.app.NotificationCompat;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
@@ -31,6 +42,10 @@ public class VpnServiceImpl extends VpnService {
     private static final int MAX_PACKET_SIZE = 32767;
     private static final int DEFAULT_PORT = 51820;
 
+    private boolean isRunning = false;
+    private ParcelFileDescriptor vpnInterface = null;
+    private DatagramSocket tunnelSocket = null;
+    private ExecutorService executorService = null;
     private Backend backend = null;
     private final Tunnel tunnel = new Tunnel() {
         @NonNull
