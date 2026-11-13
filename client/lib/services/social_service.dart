@@ -12,6 +12,8 @@ import 'package:pointycastle/digests/sha256.dart';
 import 'package:flutter_udid/flutter_udid.dart';
 import 'package:uuid/uuid.dart';
 import 'package:logger/logger.dart';
+import 'package:my_free_vpn/config/api_config.dart';
+
 
 class SocialPost {
   final String postId;
@@ -108,9 +110,13 @@ class UserProfile {
 
 class SocialService {
   static final Logger _logger = Logger();
-  static String get baseUrl => Platform.isAndroid
-      ? 'http://10.0.2.2:48392/api/v1/social'
-      : 'http://127.0.0.1:48392/api/v1/social';
+  static Future<String> getBaseUrl() async {
+    final customHost = await ApiConfig.getCustomHost();
+    final host = (customHost != null && customHost.trim().isNotEmpty)
+        ? customHost.trim()
+        : (Platform.isAndroid ? '10.0.2.2' : '127.0.0.1');
+    return 'http://$host:48392/api/v1/social';
+  }
 
   /// Get or generate Device UUID
   static Future<String> _getDeviceId() async {
@@ -190,6 +196,7 @@ class SocialService {
   static Future<List<SocialPost>> getPosts({int page = 1, int limit = 20, String? tag}) async {
     try {
       final headers = await _getAuthHeaders('');
+      final String baseUrl = await getBaseUrl();
       String url = '$baseUrl/posts?page=$page&limit=$limit';
       if (tag != null && tag.isNotEmpty) {
         url += '&tag=$tag';
@@ -214,6 +221,7 @@ class SocialService {
       final payload = jsonEncode({'content': content, 'tags': tags});
       final headers = await _getAuthHeaders(payload);
 
+      final String baseUrl = await getBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/posts'),
         headers: headers,
@@ -236,6 +244,7 @@ class SocialService {
   static Future<List<SocialComment>> getComments(String postId) async {
     try {
       final headers = await _getAuthHeaders('');
+      final String baseUrl = await getBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/posts/$postId/comments'),
         headers: headers,
@@ -259,6 +268,7 @@ class SocialService {
       final payload = jsonEncode({'content': content});
       final headers = await _getAuthHeaders(payload);
 
+      final String baseUrl = await getBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/posts/$postId/comments'),
         headers: headers,
@@ -281,6 +291,7 @@ class SocialService {
   static Future<UserProfile> getUserProfile() async {
     try {
       final headers = await _getAuthHeaders('');
+      final String baseUrl = await getBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/profile'),
         headers: headers,

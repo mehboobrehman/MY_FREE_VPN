@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:my_free_vpn/config/version_config.dart';
+import 'package:my_free_vpn/config/api_config.dart';
 import '../services/agent_logger.dart';
+
 import '../services/vpn_service.dart';
 import '../services/device_agent_core.dart';
 
@@ -22,6 +24,8 @@ class _DebugScreenState extends State<DebugScreen> {
   bool _isLoading = true;
   String _serverStatus = 'Checking...';
   bool _isFetchingNodes = false;
+  String? _customHost;
+  final TextEditingController _ipController = TextEditingController();
 
   @override
   void initState() {
@@ -29,18 +33,51 @@ class _DebugScreenState extends State<DebugScreen> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _ipController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final logs = await AgentLogger.getRecentLogs(limit: 150);
+    final customHost = await ApiConfig.getCustomHost();
     setState(() {
       _logs = logs;
       _isLoading = false;
+      _customHost = customHost;
+      _ipController.text = customHost ?? '';
       _serverStatus = DeviceAgentCore.currentState == AgentConnectionState.connected
           ? 'Online (Connected)'
           : DeviceAgentCore.currentState == AgentConnectionState.degraded
               ? 'Degraded (Relay)'
               : 'Offline / Connecting';
     });
+  }
+
+  Future<void> _saveCustomHost() async {
+    final ip = _ipController.text.trim();
+    await ApiConfig.setCustomHost(ip.isEmpty ? null : ip);
+    await DeviceAgentCore.updateManualIp(ip.isEmpty ? null : ip);
+    await _loadData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ip.isEmpty ? 'Reset to default backend host.' : 'Custom backend host saved: $ip')),
+      );
+    }
+  }
+
+  Future<void> _resetCustomHost() async {
+    _ipController.clear();
+    await ApiConfig.setCustomHost(null);
+    await DeviceAgentCore.updateManualIp(null);
+    await _loadData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Backend host reset to default.')),
+      );
+    }
   }
 
   Future<void> _clearLogs() async {
@@ -191,6 +228,58 @@ class _DebugScreenState extends State<DebugScreen> {
                 ),
               ),
             ),
+            // Development API Host / LAN IP Card (Debug-gated)
+            if (kDebugMode)
+              Card(
+                margin: const EdgeInsets.all(12),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.router, color: Colors.deepOrange, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Development API Host / LAN IP',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+                      Text('Current Custom Host: ${_customHost ?? "Not set (Using default 10.0.2.2 / 127.0.0.1)"}'),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _ipController,
+                        decoration: const InputDecoration(
+                          labelText: 'PC LAN IP (e.g. 192.168.1.50)',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _resetCustomHost,
+                            icon: const Icon(Icons.restore),
+                            label: const Text('Reset'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: _saveCustomHost,
+                            icon: const Icon(Icons.save),
+                            label: const Text('Save IP'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // 3. Last Node-Fetch Results Card
             Card(

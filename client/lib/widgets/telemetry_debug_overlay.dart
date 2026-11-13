@@ -26,6 +26,20 @@ class _TelemetryDebugOverlayState extends State<TelemetryDebugOverlay> {
           setState(() {
             _state = state;
           });
+          if (state == AgentConnectionState.offline) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Telemetry server unreachable. Action: Check Wi-Fi or configure PC LAN IP in Debug Settings.'),
+                backgroundColor: Colors.red.shade800,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'Open Debug',
+                  textColor: Colors.white,
+                  onPressed: () => _showDebugSheet(context),
+                ),
+              ),
+            );
+          }
         }
       });
       _refreshLogs();

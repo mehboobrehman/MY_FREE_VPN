@@ -7,7 +7,9 @@ import 'package:flutter_udid/flutter_udid.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:my_free_vpn/config/version_config.dart';
+import 'package:my_free_vpn/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:uuid/uuid.dart';
 
 import 'windows_vpn_service.dart';
@@ -35,9 +37,13 @@ class VpnService {
   static String get lastNodeFetchStatus => _lastNodeFetchStatus;
 
   /// Base URL for the backend API.
-  static String get _apiBaseUrl => Platform.isAndroid
-      ? 'http://10.0.2.2:48392/api/v1'
-      : 'http://127.0.0.1:48392/api/v1';
+  static Future<String> _getApiBaseUrl() async {
+    final customHost = await ApiConfig.getCustomHost();
+    final host = (customHost != null && customHost.trim().isNotEmpty)
+        ? customHost.trim()
+        : (Platform.isAndroid ? '10.0.2.2' : '127.0.0.1');
+    return 'http://$host:48392/api/v1';
+  }
 
   /// Platform channel shared with the Android host (MainActivity).
   static const MethodChannel _channel =
@@ -46,7 +52,8 @@ class VpnService {
 
   /// Fetch available exit nodes dynamically from the backend API (`GET /api/v1/nodes`).
   static Future<List<Map<String, dynamic>>> fetchNodes() async {
-    final String nodesUrl = '$_apiBaseUrl/nodes';
+    final String apiBase = await _getApiBaseUrl();
+    final String nodesUrl = '$apiBase/nodes';
     final stopwatch = Stopwatch()..start();
     try {
       _logger.d('Fetching nodes from: $nodesUrl');
@@ -267,7 +274,8 @@ class VpnService {
   }
 
   static Future<void> _registerDevice(String deviceId, String publicKey, String signature) async {
-    final String registerUrl = '$_apiBaseUrl/auth/register';
+    final String apiBase = await _getApiBaseUrl();
+    final String registerUrl = '$apiBase/auth/register';
     final String platform = Platform.isAndroid
         ? 'android'
         : (Platform.isWindows ? 'windows' : 'android');

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MY_FREE_VPN - Zero-Setup VPN",
   "short_name": "MY_FREE_VPN",
-  "version": "1.1.22",
+  "version": "1.1.23",
   "description": "Lifetime free VPN browser extension with zero setup, and a goal of zero logs with cryptographic identity.",
   "permissions": [
     "proxy",

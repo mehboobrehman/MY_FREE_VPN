@@ -5,8 +5,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
+import 'package:my_free_vpn/config/api_config.dart';
 import 'agent_logger.dart';
 import 'telemetry_redactor.dart';
+
 
 enum AgentConnectionState { offline, connecting, connected, degraded }
 
@@ -47,6 +49,8 @@ class DeviceAgentCore {
     AgentLogger.i('DeviceAgentCore', 'Initializing Device Agent Core...');
     _updateState(AgentConnectionState.connecting);
 
+    manualIpOverride = await ApiConfig.getCustomHost();
+
     await _ensureQueueTable();
     await discoverEndpoint();
 
@@ -64,6 +68,7 @@ class DeviceAgentCore {
 
   static Future<void> updateManualIp(String? ip) async {
     manualIpOverride = ip;
+    await ApiConfig.setCustomHost(ip);
     _retryAttempt = 0;
     AgentLogger.i('DeviceAgentCore', 'Manual IP updated to: $ip. Re-triggering discovery...');
     await discoverEndpoint();
@@ -136,10 +141,56 @@ class DeviceAgentCore {
       AgentLogger.e('DeviceAgentCore', 'Cloud Relay discovery failed: $e');
     }
 
+    // Fallback to Network Scan
+    final scannedEndpoint = await _scanNetworkForEndpoint();
+    if (scannedEndpoint != null) {
+      _discoveredEndpoint = scannedEndpoint;
+      _updateState(AgentConnectionState.connected);
+      AgentLogger.i('DeviceAgentCore', 'Discovered endpoint via network scan: $_discoveredEndpoint');
+      return _discoveredEndpoint;
+    }
+
     _discoveredEndpoint = 'http://$localIp:$port/api/v1/telemetry';
     _updateState(AgentConnectionState.offline);
     return _discoveredEndpoint;
   }
+
+  /// Automatic network scan for telemetry server across local subnets if standard discovery fails.
+  static Future<String?> _scanNetworkForEndpoint() async {
+    final subnets = ['192.168.1', '192.168.0', '10.0.2', '10.0.1', '10.0.0'];
+    final port = 48392;
+
+    for (final subnet in subnets) {
+      final futures = <Future<String?>>[];
+      for (int i = 1; i <= 20; i++) {
+        final ip = '$subnet.$i';
+        futures.add(_testEndpoint('http://$ip:$port/api/v1/telemetry/discovery'));
+      }
+      try {
+        final results = await Future.wait(futures);
+        for (final res in results) {
+          if (res != null) return res;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  static Future<String?> _testEndpoint(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(milliseconds: 500));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final wifiEndpoint = data['discovery']?['local_wifi']?['http_endpoint'];
+        if (wifiEndpoint != null) {
+          return wifiEndpoint.toString().replaceAll('/events', '');
+        }
+        return url.replaceAll('/discovery', '');
+      }
+    } catch (_) {}
+    return null;
+  }
+
 
   /// Handshake & Clock Sync estimation between device and host.
   static Future<bool> performHandshake(String deviceId, String publicKey, String signature) async {

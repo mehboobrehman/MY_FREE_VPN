@@ -1,10 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_free_vpn/services/device_agent_core.dart';
 import 'package:my_free_vpn/services/agent_logger.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   test('DeviceAgentCore exposes state stream and kDebugMode gating', () async {
     expect(kDebugMode, isTrue);

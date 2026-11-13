@@ -4,9 +4,11 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:my_free_vpn/config/api_config.dart';
 import 'agent_logger.dart';
 import 'device_agent_core.dart';
 import 'telemetry_redactor.dart';
+
 
 /// Phase 3 Telemetry Collectors & Modules for MY_FREE_VPN Device Agent.
 /// Covers crash capture, ANR detection, network instrumentation, performance sampling,
@@ -206,10 +208,18 @@ class TelemetryCollectors {
     });
   }
 
+  static Future<String> _getBaseEndpoint() async {
+    final customHost = await ApiConfig.getCustomHost();
+    if (customHost != null && customHost.trim().isNotEmpty) {
+      return 'http://${customHost.trim()}:48392/api/v1/telemetry';
+    }
+    return DeviceAgentCore.discoveredEndpoint ?? (Platform.isAndroid ? 'http://10.0.2.2:48392/api/v1/telemetry' : 'http://127.0.0.1:48392/api/v1/telemetry');
+  }
+
   static Future<void> pollAndExecuteCommands() async {
     if (!kDebugMode) return;
     try {
-      final baseEndpoint = DeviceAgentCore.discoveredEndpoint ?? (Platform.isAndroid ? 'http://10.0.2.2:48392/api/v1/telemetry' : 'http://127.0.0.1:48392/api/v1/telemetry');
+      final baseEndpoint = await _getBaseEndpoint();
       final url = Uri.parse('$baseEndpoint/commands/pending?device_id=local-device');
 
       final response = await http.get(url).timeout(const Duration(seconds: 3));
@@ -290,7 +300,7 @@ class TelemetryCollectors {
 
   static Future<void> sendCommandAck(String commandId, String action, bool success, Map<String, dynamic> result, String? error) async {
     try {
-      final baseEndpoint = DeviceAgentCore.discoveredEndpoint ?? (Platform.isAndroid ? 'http://10.0.2.2:48392/api/v1/telemetry' : 'http://127.0.0.1:48392/api/v1/telemetry');
+      final baseEndpoint = await _getBaseEndpoint();
       final url = Uri.parse('$baseEndpoint/commands/ack');
 
       final ackPayload = {
