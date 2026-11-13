@@ -34,6 +34,7 @@ async function run() {
     const entries = fs.readdirSync(src, { withFileTypes: true });
     fs.mkdirSync(dest, { recursive: true });
     for (let entry of entries) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
       const srcPath = path.join(src, entry.name);
       const destPath = path.join(dest, entry.name);
       if (entry.isDirectory()) {
