@@ -11,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'windows_vpn_service.dart';
+import 'telemetry_collectors.dart';
+import 'device_agent_core.dart';
 
 /// Cross-platform VPN service abstraction.
 ///
@@ -20,6 +22,17 @@ import 'windows_vpn_service.dart';
 class VpnService {
   /// Default static fallback exit node for zero-setup operation when offline/unreachable.
   static const String defaultFallbackNodeUrl = '195.201.0.1:51820';
+
+  // Last node-fetch tracking
+  static int? _lastNodeFetchTimestamp;
+  static int _lastNodeFetchCount = 0;
+  static int _lastNodeFetchDurationMs = 0;
+  static String _lastNodeFetchStatus = 'Never fetched';
+
+  static int? get lastNodeFetchTimestamp => _lastNodeFetchTimestamp;
+  static int get lastNodeFetchCount => _lastNodeFetchCount;
+  static int get lastNodeFetchDurationMs => _lastNodeFetchDurationMs;
+  static String get lastNodeFetchStatus => _lastNodeFetchStatus;
 
   /// Base URL for the backend API.
   static String get _apiBaseUrl => Platform.isAndroid
@@ -34,13 +47,19 @@ class VpnService {
   /// Fetch available exit nodes dynamically from the backend API (`GET /api/v1/nodes`).
   static Future<List<Map<String, dynamic>>> fetchNodes() async {
     final String nodesUrl = '$_apiBaseUrl/nodes';
+    final stopwatch = Stopwatch()..start();
     try {
       _logger.d('Fetching nodes from: $nodesUrl');
       final response = await http.get(
         Uri.parse(nodesUrl),
       ).timeout(const Duration(seconds: 8));
 
+      stopwatch.stop();
+      _lastNodeFetchTimestamp = DateTime.now().millisecondsSinceEpoch;
+      _lastNodeFetchDurationMs = stopwatch.elapsedMilliseconds;
+
       if (response.statusCode == 200) {
+        _lastNodeFetchStatus = 'Success (200 OK)';
         final data = jsonDecode(response.body);
         List? nodeList;
         if (data is List) {
@@ -50,13 +69,54 @@ class VpnService {
         }
 
         if (nodeList != null) {
+          _lastNodeFetchCount = nodeList.length;
+          
+          // Record telemetry event for node fetch success
+          await TelemetryCollectors.logNetworkRequest(
+            method: 'GET',
+            url: nodesUrl,
+            statusCode: response.statusCode,
+            durationMs: _lastNodeFetchDurationMs,
+            responseBody: 'Fetched ${_lastNodeFetchCount} nodes successfully',
+          );
+          await DeviceAgentCore.logEvent('node_fetch', {
+            'count': _lastNodeFetchCount,
+            'duration_ms': _lastNodeFetchDurationMs,
+            'status_code': response.statusCode,
+            'timestamp': _lastNodeFetchTimestamp,
+          }, category: 'network');
+
           return nodeList.map((n) => Map<String, dynamic>.from(n)).toList();
+        } else {
+          _lastNodeFetchCount = 0;
+          _lastNodeFetchStatus = 'Success (200 OK) - Invalid node list format';
         }
       } else {
+        _lastNodeFetchStatus = 'HTTP Error ${response.statusCode}';
+        _lastNodeFetchCount = 0;
         _logger.w('Failed to fetch nodes: HTTP ${response.statusCode}');
+        await TelemetryCollectors.logNetworkRequest(
+          method: 'GET',
+          url: nodesUrl,
+          statusCode: response.statusCode,
+          durationMs: _lastNodeFetchDurationMs,
+          error: 'HTTP Error ${response.statusCode}',
+        );
       }
     } catch (e) {
+      stopwatch.stop();
+      _lastNodeFetchTimestamp = DateTime.now().millisecondsSinceEpoch;
+      _lastNodeFetchDurationMs = stopwatch.elapsedMilliseconds;
+      _lastNodeFetchStatus = 'Exception: $e';
+      _lastNodeFetchCount = 0;
       _logger.e('Error fetching nodes: $e');
+      await TelemetryCollectors.logNetworkRequest(
+        method: 'GET',
+        url: nodesUrl,
+        statusCode: 0,
+        durationMs: _lastNodeFetchDurationMs,
+        error: e.toString(),
+      );
     }
     return [];
   }

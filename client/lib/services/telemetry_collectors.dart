@@ -228,7 +228,7 @@ class TelemetryCollectors {
   static Future<void> executeCommand(Map<String, dynamic> cmd) async {
     final commandId = cmd['command_id']?.toString() ?? 'cmd_${DateTime.now().millisecondsSinceEpoch}';
     final action = cmd['action']?.toString();
-    final params = cmd['params'] as Map<String, dynamic>? ?? {};
+    final params = (cmd['params'] as Map?)?.cast<String, dynamic>() ?? {};
 
     AgentLogger.i('TelemetryCollectors', 'Received remote command: $action (ID: $commandId)');
 

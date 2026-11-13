@@ -6,8 +6,10 @@ import 'package:my_free_vpn/config/version_config.dart';
 import 'package:my_free_vpn/services/device_agent_core.dart';
 import 'package:my_free_vpn/services/telemetry_collectors.dart';
 import 'package:my_free_vpn/services/vpn_service.dart';
+import 'package:my_free_vpn/services/update_service.dart';
 import 'package:my_free_vpn/widgets/debug_screen.dart';
 import 'package:my_free_vpn/widgets/telemetry_debug_overlay.dart';
+import 'package:my_free_vpn/widgets/update_banner.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -168,11 +170,55 @@ class _VpnHomeScreenState extends State<VpnHomeScreen> {
   Timer? _sessionTimer;
   int _secondsConnected = 0;
 
+  // Update System state
+  UpdateCheckResult? _latestUpdateResult;
+  bool _showUpdateBanner = true;
+  bool _isCheckingUpdate = false;
+
   @override
   void initState() {
     super.initState();
     _refreshStatus();
     _fetchNodes();
+    // Non-blocking startup check after ~3s
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _checkForUpdates(isStartup: true);
+      }
+    });
+  }
+
+  Future<void> _checkForUpdates({bool isStartup = false}) async {
+    if (_isCheckingUpdate) return;
+    setState(() {
+      _isCheckingUpdate = true;
+    });
+
+    try {
+      final result = await UpdateService.checkForUpdate();
+      if (!mounted) return;
+      setState(() {
+        _latestUpdateResult = result;
+        _isCheckingUpdate = false;
+        if (result.updateAvailable) {
+          _showUpdateBanner = true;
+        }
+      });
+
+      if (!isStartup) {
+        UpdateDialogs.showCheckForUpdatesResultDialog(context, result);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingUpdate = false;
+      });
+      if (!isStartup) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to check for updates: $e'), backgroundColor: Colors.red.shade700),
+        );
+      }
+    }
   }
 
   @override
@@ -346,6 +392,13 @@ class _VpnHomeScreenState extends State<VpnHomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: _isCheckingUpdate
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.system_update),
+            onPressed: _isCheckingUpdate ? null : () => _checkForUpdates(isStartup: false),
+            tooltip: 'Check for Updates',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isLoadingNodes ? null : _fetchNodes,
             tooltip: 'Refresh Nodes',
@@ -380,13 +433,40 @@ class _VpnHomeScreenState extends State<VpnHomeScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _fetchNodes,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 750;
-            
-            final shieldWidget = Column(
+      body: Column(
+        children: [
+          if (_latestUpdateResult != null && _latestUpdateResult!.updateAvailable && _showUpdateBanner)
+            UpdateBanner(
+              updateResult: _latestUpdateResult!,
+              onDismiss: () {
+                setState(() {
+                  _showUpdateBanner = false;
+                });
+              },
+              onUpdateClicked: () {
+                if (_latestUpdateResult!.release != null) {
+                  UpdateDialogs.showReleaseNotesDialog(context, _latestUpdateResult!.release!, () {
+                    if (_latestUpdateResult!.targetAsset != null) {
+                      UpdateDialogs.showDownloadProgressDialog(
+                        context,
+                        _latestUpdateResult!.targetAsset!,
+                        _latestUpdateResult!.checksumAsset,
+                      );
+                    } else {
+                      UpdateService.openReleasePage();
+                    }
+                  });
+                }
+              },
+            ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchNodes,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 750;
+                  
+                  final shieldWidget = Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Animated Shield Button
