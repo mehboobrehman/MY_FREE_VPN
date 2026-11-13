@@ -72,6 +72,9 @@ if (!fs.existsSync(targetReleaseApk)) {
 fs.copyFileSync(targetDebugApk, path.join(artifactsDir, targetDebugApk));
 fs.copyFileSync(targetReleaseApk, path.join(artifactsDir, targetReleaseApk));
 
+console.log('Generating SHA-256 checksums...');
+run('node tools/generate_checksums.js');
+
 console.log('Artifacts ready.');
 
 console.log('2. Git add, commit and push...');
@@ -82,7 +85,7 @@ run('git add browser-extension/ client/lib/ client/pubspec.yaml client/test/ 2>n
 run('git add docs/ tools/ contracts/ developer-viewer/ .github/ 2>nul || true');
 run('git add artifacts/ 2>nul || true');
 try {
-  run(`git commit -m "chore(release): bump version to ${tagName} and publish dual debug/release artifacts"`);
+  run(`git commit -m "chore(release): bump version to ${tagName} and publish dual debug/release artifacts with SHA256SUMS"`);
 } catch (e) {
   console.log('No changes to commit or already committed.');
 }
@@ -103,6 +106,7 @@ Includes dual debug and release artifacts:
 - Android APK Release: \`MY_FREE_VPN_v${version}_release.apk\`
 - Browser Extension Zip Debug: \`MY_FREE_VPN_Browser_Extension_v${version}_debug.zip\`
 - Browser Extension Zip Release: \`MY_FREE_VPN_Browser_Extension_v${version}_release.zip\`
+- Checksums: \`SHA256SUMS\`
 - Live Debug Telemetry & Zero-Setup architecture enabled.`;
 
 const notesFile = 'release_notes_temp.md';
@@ -123,7 +127,8 @@ const artifacts = [
   path.join('artifacts', targetDebugApk),
   path.join('artifacts', targetReleaseApk),
   path.join('artifacts', debugZipName),
-  path.join('artifacts', releaseZipName)
+  path.join('artifacts', releaseZipName),
+  path.join('artifacts', 'SHA256SUMS')
 ];
 
 for (const artifact of artifacts) {
