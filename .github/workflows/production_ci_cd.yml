@@ -1,0 +1,196 @@
+name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Run Backend Tests
+        run: |
+          cd backend
+          npm install
+          npm test
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Client Dependencies
+        run: |
+          cd client
+          flutter pub get
+
+      - name: Run Client Tests
+        run: |
+          cd client
+          flutter test
+
+  build-android:
+    name: Build Android APK
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type: [debug, release]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./version.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build APK (${{ matrix.build-type }})
+        run: |
+          cd client
+          flutter build apk --${{ matrix.build-type }}
+
+      - name: Rename and Prepare Artifact
+        run: |
+          mkdir -p artifacts
+          if [ "${{ matrix.build-type }}" == "debug" ]; then
+            cp client/build/app/outputs/flutter-apk/app-debug.apk artifacts/MY_FREE_VPN_v${{ env.VERSION }}_debug.apk
+          else
+            cp client/build/app/outputs/flutter-apk/app-release.apk artifacts/MY_FREE_VPN_v${{ env.VERSION }}_release.apk
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ matrix.build-type }}
+          path: artifacts/*.apk
+
+  build-extension:
+    name: Build Browser Extension
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type: [debug, release]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./version.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build Extension ZIP (${{ matrix.build-type }})
+        run: |
+          npm install archiver
+          node build_extension.js
+          mkdir -p artifacts_out
+          if [ "${{ matrix.build-type }}" == "debug" ]; then
+            cp artifacts/MY_FREE_VPN_Browser_Extension_v${{ env.VERSION }}_debug.zip artifacts_out/
+          else
+            cp artifacts/MY_FREE_VPN_Browser_Extension_v${{ env.VERSION }}_release.zip artifacts_out/
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-extension-${{ matrix.build-type }}
+          path: artifacts_out/*.zip
+
+  release:
+    name: Generate Release & Checksums
+    needs: [build-android, build-extension]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts_raw
+
+      - name: Prepare Artifacts for Release
+        run: |
+          mkdir -p artifacts
+          find artifacts_raw -type f \( -name "*.apk" -o -name "*.zip" \) -exec cp {} artifacts/ \;
+          ls -R artifacts
+
+      - name: Generate Checksums
+        run: |
+          node tools/generate_checksums.js
+          cat artifacts/SHA256SUMS
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./version.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create GitHub Release & Upload Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="v${{ env.VERSION }}"
+          gh release create "$TAG_NAME" \
+            --title "Release $TAG_NAME" \
+            --notes "Automated production release for MY_FREE_VPN v${{ env.VERSION }}. Includes secure WireGuard tunnel support, Zero-Setup architecture, and dual debug/release binaries." \
+            --clobber \
+            artifacts/*
+
+      - name: Generate Summary Manifest
+        run: |
+          echo "### Release Manifest - v${{ env.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact Name | SHA-256 Hash | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          while read -r line; do
+            hash=$(echo $line | awk '{print $1}')
+            file=$(echo $line | awk '{print $2}')
+            if [ -n "$file" ]; then
+              echo "| $file | \`$hash\` | Success |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done < artifacts/SHA256SUMS

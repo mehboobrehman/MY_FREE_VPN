@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ghPath = 'C:\\Users\\mehboob.rehman\\Downloads\\gh_2.102.0_windows_386\\bin\\gh.exe';
-const version = '1.1.22';
+const version = '1.1.23';
 const tagName = `v${version}`;
 
 function run(cmd) {
@@ -73,7 +73,8 @@ const artifacts = [
   path.join('artifacts', `MY_FREE_VPN_v${version}_debug.apk`),
   path.join('artifacts', `MY_FREE_VPN_v${version}_release.apk`),
   path.join('artifacts', `MY_FREE_VPN_Browser_Extension_v${version}_debug.zip`),
-  path.join('artifacts', `MY_FREE_VPN_Browser_Extension_v${version}_release.zip`)
+  path.join('artifacts', `MY_FREE_VPN_Browser_Extension_v${version}_release.zip`),
+  path.join('artifacts', 'SHA256SUMS')
 ];
 
 for (const artifact of artifacts) {
