@@ -49,7 +49,7 @@ const metadata = {
   artifacts: artifacts
 };
 
-const metadataPath = path.join(artifactsDir, 'build_metadata.json');
+const metadataPath = path.join(artifactsDir, 'BUILD_METADATA.json');
 fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2) + '\n', 'utf8');
 console.log(`Generated build metadata at ${metadataPath}:`);
 console.log(JSON.stringify(metadata, null, 2));

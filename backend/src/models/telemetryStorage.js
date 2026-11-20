@@ -53,7 +53,7 @@ function loadSessionsIndex() {
                 }
               }
             } catch (e) {
-              // ignore parse errors on partial files
+              console.warn(`[TelemetryStorage] Ignoring parse error in ${filePath}: ${e.message}`);
             }
 
             const sessionMeta = {
@@ -203,7 +203,9 @@ function getSessionEvents(sessionId, query = {}) {
   for (const line of lines) {
     try {
       events.push(JSON.parse(line));
-    } catch (e) {}
+    } catch (e) {
+      console.warn(`[TelemetryStorage] Corrupt JSONL line in ${meta.file_path}: ${e.message}`);
+    }
   }
 
   if (query.type) {
@@ -243,7 +245,9 @@ function exportSession(sessionId, format = 'json') {
   for (const line of lines) {
     try {
       events.push(JSON.parse(line));
-    } catch (e) {}
+    } catch (e) {
+      console.warn(`[TelemetryStorage] Corrupt JSONL line in ${meta.file_path}: ${e.message}`);
+    }
   }
 
   if (format === 'har') {
@@ -316,7 +320,9 @@ function getConfig(deviceId) {
   if (fs.existsSync(configFile)) {
     try {
       return JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    } catch (e) {}
+    } catch (e) {
+      console.error(`[TelemetryStorage] Config file corrupted for ${deviceId}: ${e.message}`);
+    }
   }
   return {
     device_id: deviceId,

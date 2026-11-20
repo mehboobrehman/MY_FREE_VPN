@@ -20,6 +20,15 @@ const UDP_PORT = process.env.UDP_PORT || 51820;
 
 app.use(bodyParser.json());
 
+// Error handling for malformed JSON payloads
+app.use((err, _req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('[Bad JSON Payload]:', err.message);
+    return res.status(400).json({ error: 'Malformed JSON' });
+  }
+  next();
+});
+
 // API versioning
 const API_PREFIX = '/api/v1';
 
