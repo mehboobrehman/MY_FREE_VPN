@@ -41,7 +41,6 @@ function run(cmd, retries = 3, delayMs = 2000) {
 async function runPipeline() {
   try {
     logStep('Step 1: Environment & Prerequisites Check');
-    // Check gh auth status
     try {
       execSync(`"${GH_PATH}" auth status`, { stdio: 'inherit' });
       logSuccess('GitHub CLI authenticated successfully.');
@@ -80,16 +79,17 @@ async function runPipeline() {
     execSync('node tools/package_artifacts.js', { stdio: 'inherit' });
     logSuccess('Artifacts packaged successfully.');
 
-    logStep('Generating Build Metadata (BUILD_METADATA.json & build_metadata.json)');
+    logStep('Generating Build Metadata (BUILD_METADATA.json)');
     execSync('node tools/generate_build_metadata.js', { stdio: 'inherit' });
     
-    // Ensure both BUILD_METADATA.json and build_metadata.json exist
+    // Write BUILD_METADATA.json
     const metaPath = path.join(artifactsDir, 'build_metadata.json');
     const capsMetaPath = path.join(artifactsDir, 'BUILD_METADATA.json');
     if (fs.existsSync(metaPath)) {
       const metaContent = fs.readFileSync(metaPath, 'utf8');
       fs.writeFileSync(capsMetaPath, metaContent, 'utf8');
-      console.log('Duplicated metadata as BUILD_METADATA.json');
+      fs.unlinkSync(metaPath); // remove lowercase variant to avoid collision
+      console.log('Created BUILD_METADATA.json');
     }
     logSuccess('Build metadata generated.');
 
@@ -135,7 +135,7 @@ Includes dual debug and release production artifacts:
 - Android APK Release: \`MY_FREE_VPN_v${VERSION}_release.apk\`
 - Browser Extension Zip Debug: \`MY_FREE_VPN_Browser_Extension_v${VERSION}_debug.zip\`
 - Browser Extension Zip Release: \`MY_FREE_VPN_Browser_Extension_v${VERSION}_release.zip\`
-- Build Metadata: \`BUILD_METADATA.json\` & \`build_metadata.json\`
+- Build Metadata: \`BUILD_METADATA.json\`
 - Checksums: \`SHA256SUMS\`
 - Architecture: Zero-Setup VPN with Live Debug Telemetry & RAM-Only Ephemeral Exit Nodes.`;
 
@@ -154,7 +154,6 @@ Includes dual debug and release production artifacts:
       `MY_FREE_VPN_Browser_Extension_v${VERSION}_debug.zip`,
       `MY_FREE_VPN_Browser_Extension_v${VERSION}_release.zip`,
       'BUILD_METADATA.json',
-      'build_metadata.json',
       'SHA256SUMS'
     ];
 
