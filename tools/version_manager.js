@@ -86,7 +86,7 @@ function updateFile(filePath, newVersion, buildMetadata) {
         json[config.key] = newVersion;
         content = JSON.stringify(json, null, 2) + '\n';
     } else if (config.type === 'yaml_version') {
-        // Format: version: 1.1.24+24
+        // Format: version: X.Y.Z+build
         const versionMatch = content.match(/^version:\s*([^+]+)(?:\+(.+))?$/m);
         if (versionMatch) {
             const currentBuildPart = versionMatch[2] || '0';
@@ -104,7 +104,7 @@ function updateFile(filePath, newVersion, buildMetadata) {
             throw new Error(`Could not find version line in ${filePath}`);
         }
     } else if (config.type === 'dart_version') {
-        // static const String version = '1.1.24';
+        // static const String version = 'X.Y.Z';
         // static const int buildNumber = 24;
         if (!content.includes('static const String version =')) {
              throw new Error(`Could not find version constant in ${filePath}`);

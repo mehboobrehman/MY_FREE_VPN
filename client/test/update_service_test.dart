@@ -57,4 +57,94 @@ void main() {
       expect(release.assets[1].name, 'SHA256SUMS');
     });
   });
+
+  group('UpdateService Build Variant Parity & Asset Selection Tests', () {
+    test('Debug build successfully selects debug asset and ignores release asset', () {
+      final assets = [
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_v1.1.22_release.apk',
+          size: 15482000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_v1.1.22_release.apk',
+        ),
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_v1.1.22_debug.apk',
+          size: 16000000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_v1.1.22_debug.apk',
+        ),
+        ReleaseAsset(
+          name: 'SHA256SUMS',
+          size: 120,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/SHA256SUMS',
+        ),
+      ];
+
+      final selected = UpdateService.selectTargetAsset(assets, true);
+      expect(selected, isNotNull);
+      expect(selected!.name, contains('_debug'));
+      expect(selected.name, not(contains('_release')));
+    });
+
+    test('Release build successfully selects release asset and ignores debug asset', () {
+      final assets = [
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_v1.1.22_debug.apk',
+          size: 16000000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_v1.1.22_debug.apk',
+        ),
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_v1.1.22_release.apk',
+          size: 15482000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_v1.1.22_release.apk',
+        ),
+        ReleaseAsset(
+          name: 'SHA256SUMS',
+          size: 120,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/SHA256SUMS',
+        ),
+      ];
+
+      final selected = UpdateService.selectTargetAsset(assets, false);
+      expect(selected, isNotNull);
+      expect(selected!.name, contains('_release'));
+      expect(selected.name, not(contains('_debug')));
+    });
+
+    test('Cross-variant update attempts (debug build with only release assets available) are rejected', () {
+      final assets = [
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_v1.1.22_release.apk',
+          size: 15482000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_v1.1.22_release.apk',
+        ),
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_Browser_Extension_v1.1.22_release.zip',
+          size: 2000000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_Browser_Extension_v1.1.22_release.zip',
+        ),
+      ];
+
+      // Debug build (isDebug = true) trying to pick from release-only assets
+      final selected = UpdateService.selectTargetAsset(assets, true);
+      expect(selected, isNull);
+    });
+
+    test('Cross-variant update attempts (release build with only debug assets available) are rejected', () {
+      final assets = [
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_v1.1.22_debug.apk',
+          size: 16000000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_v1.1.22_debug.apk',
+        ),
+        ReleaseAsset(
+          name: 'MY_FREE_VPN_Browser_Extension_v1.1.22_debug.zip',
+          size: 2000000,
+          browserDownloadUrl: 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/download/v1.1.22/MY_FREE_VPN_Browser_Extension_v1.1.22_debug.zip',
+        ),
+      ];
+
+      // Release build (isDebug = false) trying to pick from debug-only assets
+      final selected = UpdateService.selectTargetAsset(assets, false);
+      expect(selected, isNull);
+    });
+  });
 }

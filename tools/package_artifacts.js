@@ -3,7 +3,9 @@ const path = require('path');
 
 const artifactsDir = path.join(__dirname, '..', 'artifacts');
 fs.mkdirSync(artifactsDir, { recursive: true });
-const version = '1.1.24';
+const versionFile = path.join(__dirname, '..', 'version.json');
+const versionData = JSON.parse(fs.readFileSync(versionFile, 'utf8'));
+const version = versionData.version;
 
 const debugApkSrc = path.join(__dirname, '..', 'client', 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
 const releaseApkSrc = path.join(__dirname, '..', 'client', 'build', 'app', 'outputs', 'flutter-apk', 'app-release.apk');

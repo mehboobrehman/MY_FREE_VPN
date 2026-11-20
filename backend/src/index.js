@@ -10,6 +10,7 @@ const socialRoutes = require('./routes/social');
 const smartDnsRoutes = require('./routes/smartdns');
 const legacyRoutes = require('./routes/legacy');
 const configRoutes = require('./routes/config');
+const versionRoutes = require('./routes/version');
 const telemetryRoutes = require('./routes/telemetry');
 const adminAuthMiddleware = require('./middleware/adminAuth');
 
@@ -29,6 +30,7 @@ app.use(`${API_PREFIX}/social`, socialRoutes);
 app.use(`${API_PREFIX}/smartdns`, smartDnsRoutes);
 app.use(`${API_PREFIX}/legacy`, legacyRoutes);
 app.use(`${API_PREFIX}/config`, configRoutes);
+app.use(`${API_PREFIX}/version`, versionRoutes);
 app.use(`${API_PREFIX}/telemetry`, telemetryRoutes);
 
 // Developer Viewer Dashboard static assets

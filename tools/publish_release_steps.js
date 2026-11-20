@@ -3,7 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ghPath = 'C:\\Users\\mehboob.rehman\\Downloads\\gh_2.102.0_windows_386\\bin\\gh.exe';
-const version = '1.1.24';
+const versionFile = path.join(__dirname, '..', 'version.json');
+const versionData = JSON.parse(fs.readFileSync(versionFile, 'utf8'));
+const version = versionData.version;
 const tagName = `v${version}`;
 
 function run(cmd) {

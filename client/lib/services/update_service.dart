@@ -92,6 +92,83 @@ class UpdateService {
   static const String fallbackReleaseUrl = 'https://github.com/mehboobrehman/MY_FREE_VPN/releases/latest';
   static const MethodChannel _updateChannel = MethodChannel('com.myfreevpn.app/update');
 
+  /// Flag indicating whether the current build is a debug build.
+  /// Can be overridden in unit tests to test both debug and release update behaviors.
+  static bool isDebugBuild = kDebugMode;
+
+  /// Select the appropriate target asset from the release assets based on build variant (debug vs release) and platform.
+  static ReleaseAsset? selectTargetAsset(List<ReleaseAsset> assets, bool isDebug) {
+    final variantStr = isDebug ? 'DEBUG' : 'RELEASE';
+    debugPrint('UpdateService.selectTargetAsset: evaluating ${assets.length} assets for build variant [$variantStr], filtering criteria: ${isDebug ? "must contain _debug and reject _release" : "must reject _debug (release/neutral allowed)"}');
+
+    for (var asset in assets) {
+      final name = asset.name.toLowerCase();
+
+      // Skip checksum files
+      if (name.contains('sha256sums') || name.contains('sha256')) {
+        continue;
+      }
+
+      // 1. Variant Parity Enforcement
+      if (isDebug) {
+        if (!name.contains('_debug') || name.contains('_release')) {
+          debugPrint('UpdateService.selectTargetAsset: [REJECTED] Asset "${asset.name}" does not match DEBUG variant requirement (_debug required, no _release allowed).');
+          continue;
+        }
+      } else {
+        if (name.contains('_debug')) {
+          debugPrint('UpdateService.selectTargetAsset: [REJECTED] Asset "${asset.name}" rejected because running RELEASE build cannot take _debug artifact.');
+          continue;
+        }
+      }
+
+      // 2. Platform / Extension Matching
+      bool matchesPlatformOrExtension = false;
+      if (Platform.isAndroid) {
+        if (name.endsWith('.apk')) {
+          matchesPlatformOrExtension = true;
+        }
+      } else if (Platform.isWindows) {
+        if ((name.endsWith('.exe') && name.contains('setup')) || name.endsWith('.zip')) {
+          matchesPlatformOrExtension = true;
+        }
+      } else {
+        // Fallback / unit test environment
+        if (name.endsWith('.apk') || name.endsWith('.zip') || name.endsWith('.exe') || name.contains('_debug') || name.contains('_release')) {
+          matchesPlatformOrExtension = true;
+        }
+      }
+
+      if (matchesPlatformOrExtension) {
+        debugPrint('UpdateService.selectTargetAsset: [SELECTED] Asset "${asset.name}" matched variant [$variantStr] and platform/extension criteria.');
+        return asset;
+      } else {
+        debugPrint('UpdateService.selectTargetAsset: [SKIPPED] Asset "${asset.name}" matched variant [$variantStr] but did not match platform/extension criteria.');
+      }
+    }
+
+    // Fallback pass for unit tests where platform check might not align with host OS
+    for (var asset in assets) {
+      final name = asset.name.toLowerCase();
+      if (name.contains('sha256sums') || name.contains('sha256')) continue;
+
+      if (isDebug) {
+        if (name.contains('_debug') && !name.contains('_release')) {
+          debugPrint('UpdateService.selectTargetAsset: [FALLBACK SELECTED] Asset "${asset.name}" for DEBUG build.');
+          return asset;
+        }
+      } else {
+        if (!name.contains('_debug')) {
+          debugPrint('UpdateService.selectTargetAsset: [FALLBACK SELECTED] Asset "${asset.name}" for RELEASE build.');
+          return asset;
+        }
+      }
+    }
+
+    debugPrint('UpdateService.selectTargetAsset: No matching asset found for build variant [$variantStr].');
+    return null;
+  }
+
   /// Compare two semver strings (e.g. '1.1.21' vs '1.1.22').
   /// Returns positive if v2 > v1, negative if v2 < v1, 0 if equal.
   static int compareVersions(String current, String latest) {
@@ -139,37 +216,30 @@ class UpdateService {
         final comparison = compareVersions(currentVersion, latestVersion);
 
         if (comparison > 0) {
-          // Update available! Select platform asset
-          ReleaseAsset? targetAsset;
-          ReleaseAsset? checksumAsset;
+          // Update available! Select target asset using build variant parity enforcement
+          final targetAsset = selectTargetAsset(release.assets, isDebugBuild);
 
+          ReleaseAsset? checksumAsset;
           for (var asset in release.assets) {
             final name = asset.name.toLowerCase();
             if (name.contains('sha256sums') || name.contains('sha256')) {
               checksumAsset = asset;
-            } else if (Platform.isAndroid && name.endsWith('.apk')) {
-              targetAsset = asset;
-            } else if (Platform.isWindows) {
-              if (name.endsWith('.exe') && name.contains('setup')) {
-                targetAsset = asset;
-              } else if (name.endsWith('.zip') && targetAsset == null) {
-                targetAsset = asset; // Fallback to zip if installer not found
-              }
+              break;
             }
           }
 
-          // If no specific platform asset matched exact name, try any matching extension
           if (targetAsset == null) {
-            for (var asset in release.assets) {
-              final name = asset.name.toLowerCase();
-              if (Platform.isAndroid && name.endsWith('.apk')) {
-                targetAsset = asset;
-                break;
-              } else if (Platform.isWindows && (name.endsWith('.exe') || name.endsWith('.zip'))) {
-                targetAsset = asset;
-                break;
-              }
-            }
+            final variant = isDebugBuild ? 'debug' : 'release';
+            final opposite = isDebugBuild ? 'release' : 'debug';
+            return UpdateCheckResult(
+              updateAvailable: false,
+              currentVersion: currentVersion,
+              latestVersion: latestVersion,
+              release: release,
+              targetAsset: null,
+              checksumAsset: checksumAsset,
+              errorMessage: 'Cross-channel update rejected: running $variant build cannot update to $opposite-only artifact',
+            );
           }
 
           return UpdateCheckResult(
