@@ -1,12 +1,16 @@
 {
   "name": "my-free-vpn",
-  "version": "1.0.0",
+  "version": "1.1.25",
   "description": "A free VPN for android and windows for lifetime with zero setup.",
   "main": "backend/src/index.js",
   "scripts": {
     "debug": "node tools/live_debug.js --all --open-viewer",
     "start": "node backend/src/index.js",
-    "test": "npm --prefix backend test"
+    "test": "npm --prefix backend test",
+    "version:patch": "node tools/version_manager.js patch",
+    "version:minor": "node tools/version_manager.js minor",
+    "version:major": "node tools/version_manager.js major",
+    "version:auto": "node tools/version_manager.js auto"
   },
   "keywords": [
     "vpn",

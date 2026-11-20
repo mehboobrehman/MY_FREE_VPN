@@ -1,4 +1,4 @@
 class VersionConfig {
-  static const String version = '1.1.24';
-  static const int buildNumber = 24;
+  static const String version = '1.1.25';
+  static const int buildNumber = 25;
 }
