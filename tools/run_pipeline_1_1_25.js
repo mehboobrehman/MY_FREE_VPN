@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const crypto = require('crypto');
 
 const VERSION = '1.1.25';
 const TAG_NAME = `v${VERSION}`;
@@ -81,16 +80,6 @@ async function runPipeline() {
 
     logStep('Generating Build Metadata (BUILD_METADATA.json)');
     execSync('node tools/generate_build_metadata.js', { stdio: 'inherit' });
-    
-    // Write BUILD_METADATA.json
-    const metaPath = path.join(artifactsDir, 'build_metadata.json');
-    const capsMetaPath = path.join(artifactsDir, 'BUILD_METADATA.json');
-    if (fs.existsSync(metaPath)) {
-      const metaContent = fs.readFileSync(metaPath, 'utf8');
-      fs.writeFileSync(capsMetaPath, metaContent, 'utf8');
-      fs.unlinkSync(metaPath); // remove lowercase variant to avoid collision
-      console.log('Created BUILD_METADATA.json');
-    }
     logSuccess('Build metadata generated.');
 
     logStep('Generating SHA-256 Cryptographic Checksums (SHA256SUMS)');
