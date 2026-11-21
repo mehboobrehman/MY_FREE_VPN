@@ -160,6 +160,11 @@ jobs:
           find artifacts_raw -type f \( -name "*.apk" -o -name "*.zip" \) -exec cp {} artifacts/ \;
           ls -R artifacts
 
+      - name: Generate Build Metadata
+        run: |
+          node tools/generate_build_metadata.js
+          ls -l artifacts/
+
       - name: Generate Checksums
         run: |
           node tools/generate_checksums.js

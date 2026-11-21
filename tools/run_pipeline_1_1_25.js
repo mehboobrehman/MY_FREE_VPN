@@ -86,6 +86,27 @@ async function runPipeline() {
     execSync('node tools/generate_checksums.js', { stdio: 'inherit' });
     logSuccess('Checksums generated.');
 
+    logStep('Pre-upload Validation Assertions');
+    const requiredArtifacts = [
+      `MY_FREE_VPN_v${VERSION}_debug.apk`,
+      `MY_FREE_VPN_v${VERSION}_release.apk`,
+      `MY_FREE_VPN_Browser_Extension_v${VERSION}_debug.zip`,
+      `MY_FREE_VPN_Browser_Extension_v${VERSION}_release.zip`,
+      'BUILD_METADATA.json',
+      'SHA256SUMS'
+    ];
+
+    for (const art of requiredArtifacts) {
+      const artPath = path.join(artifactsDir, art);
+      if (!fs.existsSync(artPath)) {
+        const errMsg = `Pre-upload validation failed: Required artifact missing -> ${artPath}`;
+        logError(errMsg);
+        throw new Error(errMsg);
+      }
+      console.log(`[VERIFIED] Found required artifact: ${art}`);
+    }
+    logSuccess('All pre-upload validation assertions passed successfully.');
+
     logStep('Step 3: Git Operations & Publishing');
     run('git add .');
     try {
